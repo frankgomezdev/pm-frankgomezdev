@@ -9,6 +9,7 @@ import {
   updateProject,
 } from "@/lib/projects/api";
 import type { Project } from "@/lib/types/project";
+import { ProjectOutcomesSection } from "@/components/projects/ProjectOutcomesSection";
 import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
 
 export function ProjectDetailView() {
@@ -189,6 +190,11 @@ export function ProjectDetailView() {
           )}
         </div>
       )}
+
+      <ProjectOutcomesSection
+        projectId={project.id}
+        projectActive={project.status === "active"}
+      />
 
       <ProjectTasksSection
         projectId={project.id}

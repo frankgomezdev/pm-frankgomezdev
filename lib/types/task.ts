@@ -24,6 +24,7 @@ export type TaskCreateInput = {
   description: string;
   status: TaskStatus;
   assigneeId: string | null;
+  outcomeId: string | null;
 };
 
 export type TaskUpdateInput = {
@@ -32,6 +33,7 @@ export type TaskUpdateInput = {
   status: TaskStatus;
   assigneeId: string | null;
   projectId: string;
+  outcomeId: string | null;
 };
 
 export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [
