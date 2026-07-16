@@ -1,11 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/catalyst/button";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Heading, Subheading } from "@/components/catalyst/heading";
+import { Link } from "@/components/catalyst/link";
+import { Text, TextLink } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import { activityCreatedAtMs, logActivity } from "@/lib/activity/api";
 import {
   loadProgressHome,
@@ -26,6 +31,25 @@ function formatWhen(event: ActivityEvent): string {
   });
 }
 
+/** Thin custom bar — approved Phase 0 exception (no Catalyst Progress equivalent). */
+function ProgressBar({ percent }: { percent: number }) {
+  const width = Math.min(100, Math.max(0, percent));
+  return (
+    <div
+      className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-950/5 dark:bg-white/10"
+      role="progressbar"
+      aria-valuenow={width}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className="h-full rounded-full bg-sky-500 transition-[width] duration-300"
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+}
+
 function StatsStrip({ stats }: { stats: ProgressStats }) {
   const tiles = [
     { label: "To do", value: stats.todoCount },
@@ -37,11 +61,14 @@ function StatsStrip({ stats }: { stats: ProgressStats }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {tiles.map((tile) => (
-        <div key={tile.label} className={`${cardPaddingClassName} py-3`}>
-          <p className="text-2xl font-semibold tracking-tight text-zinc-900">
+        <div
+          key={tile.label}
+          className="rounded-lg border border-zinc-950/10 px-4 py-3 dark:border-white/10"
+        >
+          <p className="text-2xl/8 font-semibold tracking-tight text-zinc-950 dark:text-white">
             {tile.value}
           </p>
-          <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <p className="mt-0.5 text-xs/5 font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             {tile.label}
           </p>
         </div>
@@ -75,19 +102,17 @@ function ActivityList({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-3">
       {items.map((event) => (
-        <li key={event.id} className={`${cardPaddingClassName} px-3 py-2.5`}>
-          <p className="text-sm text-zinc-900">{event.message}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <li
+          key={event.id}
+          className="rounded-lg border border-zinc-950/10 px-4 py-3 dark:border-white/10"
+        >
+          <Text className="text-zinc-950 dark:text-white">{event.message}</Text>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs/5 text-zinc-500 dark:text-zinc-400">
             <span>{formatWhen(event)}</span>
             {event.taskId && (
-              <Link
-                href={`/tasks/${event.taskId}`}
-                className="underline hover:text-zinc-800"
-              >
-                Open task
-              </Link>
+              <TextLink href={`/tasks/${event.taskId}`}>Open task</TextLink>
             )}
           </div>
         </li>
@@ -114,27 +139,25 @@ function OutcomeStrip({ rows }: { rows: OutcomeProgress[] }) {
         const pct =
           totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
         return (
-          <li key={outcome.id} className={`${cardPaddingClassName} py-3.5`}>
+          <li
+            key={outcome.id}
+            className="rounded-lg border border-zinc-950/10 px-4 py-3.5 dark:border-white/10"
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <Link
                 href={`/projects/${outcome.projectId}`}
-                className="font-medium text-zinc-900 hover:underline"
+                className="font-medium text-zinc-950 hover:underline dark:text-white"
               >
                 {outcome.title}
               </Link>
-              <span className="text-sm tabular-nums text-zinc-600">
+              <span className="text-sm/6 tabular-nums text-zinc-600 dark:text-zinc-400">
                 {doneCount}/{totalCount} · {pct}%
               </span>
             </div>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className="h-full rounded-full bg-sky-500 transition-[width] duration-300"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <ProgressBar percent={pct} />
+            <Text className="mt-1.5 text-xs/5">
               Coordination view — not a ranking.
-            </p>
+            </Text>
           </li>
         );
       })}
@@ -176,38 +199,31 @@ function ReflectionPrompt({ onSaved }: { onSaved: () => void }) {
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className={`flex flex-col gap-3 ${cardPaddingClassName}`}
-    >
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-          End-of-day reflection
-        </h2>
-        <p className="mt-0.5 text-sm text-zinc-500">
+        <Subheading level={2}>End-of-day reflection</Subheading>
+        <Text className="mt-0.5">
           What moved forward, and who did it help? Informational only — not a
           score.
-        </p>
+        </Text>
       </div>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={3}
-        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500"
-        placeholder="e.g. Unblocked Priya on login UI by finishing Auth."
-      />
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
-      <button
+      <Field>
+        <Label className="sr-only">Reflection</Label>
+        <Textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={3}
+          placeholder="e.g. Unblocked Priya on login UI by finishing Auth."
+        />
+      </Field>
+      {error && <ErrorBanner>{error}</ErrorBanner>}
+      <Button
         type="submit"
         disabled={busy || !text.trim()}
-        className="w-fit rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        className="w-fit"
       >
         {busy ? "Saving…" : "Save reflection"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -253,13 +269,11 @@ export function ProgressHomeView() {
   }, [refresh]);
 
   if (profile?.preferences.homeView === "tasks") {
-    return (
-      <p className="text-sm text-zinc-500">Opening your preferred Tasks view…</p>
-    );
+    return <Text>Opening your preferred Tasks view…</Text>;
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading progress…</p>;
+    return <Text>Loading progress…</Text>;
   }
 
   const feed =
@@ -279,40 +293,32 @@ export function ProgressHomeView() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Progress</h1>
-        <p className="mt-1 text-zinc-600">
+        <Heading>Progress</Heading>
+        <Text className="mt-1">
           {profile?.displayName
             ? `Hi ${profile.displayName} — here’s momentum on meaningful work.`
             : "Momentum on meaningful work — not a scoreboard."}
-        </p>
+        </Text>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <StatsStrip stats={data?.stats ?? emptyStats} />
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
         <section className="flex flex-col gap-3">
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-              Team outcomes
-            </h2>
-            <p className="mt-0.5 text-sm text-zinc-500">
+            <Subheading level={2}>Team outcomes</Subheading>
+            <Text className="mt-0.5">
               Shared progress toward open outcomes (done / total linked tasks).
-            </p>
+            </Text>
           </div>
           <OutcomeStrip rows={data?.outcomeProgress ?? []} />
         </section>
 
         <div className="flex flex-col gap-6">
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-              {feedLabel}
-            </h2>
+            <Subheading level={2}>{feedLabel}</Subheading>
             <ActivityList
               items={feed}
               emptyTitle="No moves yet"
