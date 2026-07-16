@@ -9,6 +9,7 @@ import { Heading } from "@/components/catalyst/heading";
 import { Input } from "@/components/catalyst/input";
 import { Strong, Text } from "@/components/catalyst/text";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/Banner";
 
 type Mode = "login" | "signup";
 
@@ -134,14 +135,7 @@ export default function AuthPage() {
           />
         </Field>
 
-        {formError ? (
-          <p
-            role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm/6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
-          >
-            {formError}
-          </p>
-        ) : null}
+        {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting

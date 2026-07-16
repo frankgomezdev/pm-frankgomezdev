@@ -7,6 +7,7 @@ import { Button } from "@/components/catalyst/button";
 import { Heading } from "@/components/catalyst/heading";
 import { Code, Text } from "@/components/catalyst/text";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/Banner";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading, error, signOut } = useAuth();
@@ -39,12 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <AuthLayout>
         <div className="grid w-full max-w-sm grid-cols-1 gap-6">
           <Heading>Profile error</Heading>
-          <p
-            role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm/6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
-          >
-            {error}
-          </p>
+          <ErrorBanner>{error}</ErrorBanner>
           <Text>
             If this mentions permissions, create a Firestore database and deploy
             the rules in <Code>firestore.rules</Code>, or temporarily use test
