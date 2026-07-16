@@ -6,7 +6,6 @@ import { Button } from "@/components/catalyst/button";
 import { Checkbox, CheckboxField } from "@/components/catalyst/checkbox";
 import { Divider } from "@/components/catalyst/divider";
 import {
-  Description,
   Field,
   Fieldset,
   Label,
@@ -302,10 +301,10 @@ export function TaskDetailView() {
 
         <Fieldset>
           <Legend>Blockers & next action</Legend>
-          <Description>
+          <Text>
             Capture why work is stuck and the smallest step to unblock. Cleared
             blockers show on Progress.
-          </Description>
+          </Text>
           <div className="mt-6 space-y-6">
             <Field>
               <Label>Why stuck</Label>
