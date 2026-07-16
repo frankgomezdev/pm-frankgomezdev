@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { createTask, listTasksByProject } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
@@ -208,9 +209,10 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
       {loading ? (
         <p className="text-sm text-zinc-500">Loading tasks…</p>
       ) : tasks.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-sm text-zinc-500">
-          No tasks in this project yet.
-        </p>
+        <EmptyState
+          title="No tasks in this project"
+          description="Add a task above, or create one from the Tasks page with this project selected."
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {tasks.map((task) => {

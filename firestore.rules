@@ -10,32 +10,156 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // Assignee picker: any signed-in user can read cohort profiles.
+    function isNonEmptyString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function validProjectStatus(status) {
+      return status in ['active', 'archived'];
+    }
+
+    function validTaskStatus(status) {
+      return status in ['todo', 'in_progress', 'done'];
+    }
+
+    function validOutcomeStatus(status) {
+      return status in ['open', 'done'];
+    }
+
+    function validActivityType(type) {
+      return type in [
+        'task_created',
+        'status_changed',
+        'assigned',
+        'blocker_cleared',
+        'outcome_progress',
+        'reflection'
+      ];
+    }
+
+    function validPreferences(prefs) {
+      return prefs is map
+        && prefs.homeView in ['progress', 'tasks']
+        && prefs.reflectionPromptEnabled is bool
+        && prefs.nudgeGoalQuality is bool
+        && prefs.stallDaysThreshold is number
+        && prefs.stallDaysThreshold >= 1
+        && prefs.stallDaysThreshold <= 30
+        && prefs.reminderCadence in ['off', 'daily', 'weekly'];
+    }
+
+    // Cohort profiles: any signed-in user may read; only self may write.
     match /users/{uid} {
       allow read: if signedIn();
-      allow create, update: if isSelf(uid);
+
+      allow create: if isSelf(uid)
+        && request.resource.data.keys().hasAll([
+          'email', 'displayName', 'createdAt', 'preferences'
+        ])
+        && request.resource.data.email is string
+        && isNonEmptyString(request.resource.data.displayName)
+        && validPreferences(request.resource.data.preferences);
+
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName', 'email', 'preferences'])
+        && request.resource.data.email is string
+        && isNonEmptyString(request.resource.data.displayName)
+        && validPreferences(request.resource.data.preferences);
+
       allow delete: if false;
     }
 
-    // v1: one shared cohort workspace — any signed-in user may CRUD.
+    // v1: shared cohort workspace — signed-in users may CRUD (no hard deletes).
     match /projects/{projectId} {
-      allow read, create, update: if signedIn();
-      allow delete: if false;
-    }
+      allow read: if signedIn();
 
-    match /tasks/{taskId} {
-      allow read, create, update: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'title', 'description', 'status', 'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validProjectStatus(request.resource.data.status)
+        && request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if signedIn()
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validProjectStatus(request.resource.data.status)
+        && request.resource.data.createdBy == resource.data.createdBy;
+
       allow delete: if false;
     }
 
     match /outcomes/{outcomeId} {
-      allow read, create, update: if signedIn();
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'projectId', 'title', 'description', 'status',
+          'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && isNonEmptyString(request.resource.data.projectId)
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validOutcomeStatus(request.resource.data.status)
+        && request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if signedIn()
+        && isNonEmptyString(request.resource.data.projectId)
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validOutcomeStatus(request.resource.data.status)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.projectId == resource.data.projectId;
+
       allow delete: if false;
     }
 
-    // Append-only progress feed.
+    match /tasks/{taskId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'projectId', 'outcomeId', 'title', 'description', 'status',
+          'assigneeId', 'blockedByTaskIds', 'blockerNote', 'nextAction',
+          'lastMovedAt', 'createdBy', 'createdAt', 'updatedAt', 'archived'
+        ])
+        && isNonEmptyString(request.resource.data.projectId)
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validTaskStatus(request.resource.data.status)
+        && request.resource.data.blockedByTaskIds is list
+        && request.resource.data.archived is bool
+        && request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if signedIn()
+        && isNonEmptyString(request.resource.data.projectId)
+        && isNonEmptyString(request.resource.data.title)
+        && request.resource.data.description is string
+        && validTaskStatus(request.resource.data.status)
+        && request.resource.data.blockedByTaskIds is list
+        && request.resource.data.archived is bool
+        && request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if false;
+    }
+
+    // Append-only progress feed; actors may only write as themselves.
     match /activity/{eventId} {
-      allow read, create: if signedIn();
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'type', 'actorId', 'projectId', 'taskId', 'outcomeId',
+          'message', 'createdAt'
+        ])
+        && validActivityType(request.resource.data.type)
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.projectId is string
+        && isNonEmptyString(request.resource.data.message);
+
       allow update, delete: if false;
     }
 

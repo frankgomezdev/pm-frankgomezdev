@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   createProject,
   listProjects,
@@ -187,14 +188,21 @@ export function ProjectsView() {
       )}
 
       <ul className="flex flex-col gap-3">
-        {visible.length === 0 && (
-          <li className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            {showArchived
-              ? "No archived projects."
-              : "No active projects yet. Create one above."}
+        {visible.length === 0 ? (
+          <li>
+            <EmptyState
+              title={
+                showArchived ? "No archived projects" : "No active projects yet"
+              }
+              description={
+                showArchived
+                  ? "Archive a project from the list when you’re done with it."
+                  : "Create a project above to start grouping outcomes and tasks."
+              }
+            />
           </li>
-        )}
-        {visible.map((project) => (
+        ) : (
+          visible.map((project) => (
           <li
             key={project.id}
             className="rounded-lg border border-zinc-200 bg-white p-4"
@@ -306,7 +314,8 @@ export function ProjectsView() {
               </div>
             )}
           </li>
-        ))}
+          ))
+        )}
       </ul>
     </div>
   );

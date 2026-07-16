@@ -18,13 +18,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm font-semibold tracking-tight">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <span className="shrink-0 text-sm font-semibold tracking-tight">
               Cohort PM
             </span>
-            <nav className="flex flex-wrap gap-1 text-sm">
+            <nav
+              className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              aria-label="Primary"
+            >
               {NAV.map((item) => {
                 const active =
                   item.href === "/"
@@ -36,8 +39,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={
                       active
-                        ? "rounded-md bg-zinc-900 px-2.5 py-1.5 text-white"
-                        : "rounded-md px-2.5 py-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                        ? "shrink-0 rounded-md bg-zinc-900 px-2.5 py-1.5 text-white"
+                        : "shrink-0 rounded-md px-2.5 py-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                     }
                   >
                     {item.label}
@@ -46,21 +49,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-zinc-500">
+          <div className="flex items-center justify-between gap-3 text-sm sm:justify-end">
+            <span className="truncate text-zinc-500">
               {profile?.displayName ?? "Signed in"}
             </span>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-zinc-700 hover:bg-zinc-50"
+              className="shrink-0 rounded-md border border-zinc-300 px-2.5 py-1.5 text-zinc-700 hover:bg-zinc-50"
             >
               Sign out
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-8">{children}</main>
     </div>
   );
 }
