@@ -17,7 +17,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Broader collections arrive in later milestones; deny by default for now.
+    // v1: one shared cohort workspace — any signed-in user may CRUD projects.
+    match /projects/{projectId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
