@@ -9,6 +9,7 @@ import {
   updateProject,
 } from "@/lib/projects/api";
 import type { Project } from "@/lib/types/project";
+import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
 
 export function ProjectDetailView() {
   const params = useParams<{ id: string }>();
@@ -189,16 +190,10 @@ export function ProjectDetailView() {
         </div>
       )}
 
-      <section className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-6">
-        <h2 className="text-sm font-semibold text-zinc-900">Tasks</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Create and edit tasks on{" "}
-          <Link href="/tasks" className="underline">
-            Tasks
-          </Link>
-          . A project-scoped list lands in slice B3.
-        </p>
-      </section>
+      <ProjectTasksSection
+        projectId={project.id}
+        projectActive={project.status === "active"}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import type {
@@ -39,6 +40,24 @@ function mapTask(id: string, data: Record<string, unknown>): Task {
   };
 }
 
+function sortByUpdatedAtDesc(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    const aTime =
+      a.updatedAt &&
+      typeof a.updatedAt === "object" &&
+      "toMillis" in a.updatedAt
+        ? (a.updatedAt as { toMillis: () => number }).toMillis()
+        : 0;
+    const bTime =
+      b.updatedAt &&
+      typeof b.updatedAt === "object" &&
+      "toMillis" in b.updatedAt
+        ? (b.updatedAt as { toMillis: () => number }).toMillis()
+        : 0;
+    return bTime - aTime;
+  });
+}
+
 export async function listTasks(): Promise<Task[]> {
   const q = query(
     collection(getFirestoreDb(), "tasks"),
@@ -48,6 +67,17 @@ export async function listTasks(): Promise<Task[]> {
   return snap.docs
     .map((d) => mapTask(d.id, d.data()))
     .filter((t) => !t.archived);
+}
+
+export async function listTasksByProject(projectId: string): Promise<Task[]> {
+  const q = query(
+    collection(getFirestoreDb(), "tasks"),
+    where("projectId", "==", projectId),
+  );
+  const snap = await getDocs(q);
+  return sortByUpdatedAtDesc(
+    snap.docs.map((d) => mapTask(d.id, d.data())).filter((t) => !t.archived),
+  );
 }
 
 export async function getTask(taskId: string): Promise<Task | null> {

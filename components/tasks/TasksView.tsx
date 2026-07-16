@@ -12,6 +12,34 @@ import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 
 const defaultStatus: TaskStatus = "todo";
 
+type FilterState = {
+  projectId: string; // "" = all
+  status: string; // "" = all
+  assigneeId: string; // "" = all, "unassigned" = none
+};
+
+function readFiltersFromSearch(): FilterState {
+  if (typeof window === "undefined") {
+    return { projectId: "", status: "", assigneeId: "" };
+  }
+  const params = new URLSearchParams(window.location.search);
+  return {
+    projectId: params.get("project") ?? "",
+    status: params.get("status") ?? "",
+    assigneeId: params.get("assignee") ?? "",
+  };
+}
+
+function writeFiltersToSearch(filters: FilterState) {
+  const params = new URLSearchParams();
+  if (filters.projectId) params.set("project", filters.projectId);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.assigneeId) params.set("assignee", filters.assigneeId);
+  const qs = params.toString();
+  const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  window.history.replaceState(null, "", next);
+}
+
 export function TasksView() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -26,6 +54,16 @@ export function TasksView() {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+
+  const [filters, setFilters] = useState<FilterState>({
+    projectId: "",
+    status: "",
+    assigneeId: "",
+  });
+
+  useEffect(() => {
+    setFilters(readFiltersFromSearch());
+  }, []);
 
   const projectById = useMemo(() => {
     const map = new Map<string, Project>();
@@ -43,6 +81,28 @@ export function TasksView() {
     () => projects.filter((p) => p.status === "active"),
     [projects],
   );
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      if (filters.projectId && task.projectId !== filters.projectId) {
+        return false;
+      }
+      if (filters.status && task.status !== filters.status) {
+        return false;
+      }
+      if (filters.assigneeId === "unassigned" && task.assigneeId) {
+        return false;
+      }
+      if (
+        filters.assigneeId &&
+        filters.assigneeId !== "unassigned" &&
+        task.assigneeId !== filters.assigneeId
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [tasks, filters]);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -75,6 +135,20 @@ export function TasksView() {
     void refresh();
   }, [refresh]);
 
+  function updateFilters(patch: Partial<FilterState>) {
+    setFilters((prev) => {
+      const next = { ...prev, ...patch };
+      writeFiltersToSearch(next);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    const empty = { projectId: "", status: "", assigneeId: "" };
+    setFilters(empty);
+    writeFiltersToSearch(empty);
+  }
+
   async function onCreate(event: FormEvent) {
     event.preventDefault();
     if (!user) return;
@@ -101,12 +175,16 @@ export function TasksView() {
     return <p className="text-sm text-zinc-500">Loading tasks…</p>;
   }
 
+  const filtersActive = Boolean(
+    filters.projectId || filters.status || filters.assigneeId,
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
         <p className="text-zinc-600">
-          Create and open tasks. Filters land in slice B3.
+          Create tasks and filter by project, status, or assignee.
         </p>
       </div>
 
@@ -202,13 +280,82 @@ export function TasksView() {
         )}
       </form>
 
+      <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-zinc-900">Filters</h2>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm text-zinc-600 underline hover:text-zinc-900"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Project</span>
+            <select
+              value={filters.projectId}
+              onChange={(e) => updateFilters({ projectId: e.target.value })}
+              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+            >
+              <option value="">All projects</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                  {p.status === "archived" ? " (archived)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Status</span>
+            <select
+              value={filters.status}
+              onChange={(e) => updateFilters({ status: e.target.value })}
+              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+            >
+              <option value="">All statuses</option>
+              {TASK_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Assignee</span>
+            <select
+              value={filters.assigneeId}
+              onChange={(e) => updateFilters({ assigneeId: e.target.value })}
+              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+            >
+              <option value="">All assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.uid} value={u.uid}>
+                  {u.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Showing {filteredTasks.length} of {tasks.length} tasks
+        </p>
+      </section>
+
       <ul className="flex flex-col gap-3">
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <li className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            No tasks yet.
+            {tasks.length === 0
+              ? "No tasks yet."
+              : "No tasks match these filters."}
           </li>
         ) : (
-          tasks.map((task) => {
+          filteredTasks.map((task) => {
             const project = projectById.get(task.projectId);
             const assignee = task.assigneeId
               ? userById.get(task.assigneeId)
@@ -231,9 +378,7 @@ export function TasksView() {
                     </Link>
                     <p className="mt-1 text-sm text-zinc-500">
                       {project?.title ?? "Unknown project"} · {statusLabel} ·{" "}
-                      {assignee
-                        ? assignee.displayName
-                        : "Unassigned"}
+                      {assignee ? assignee.displayName : "Unassigned"}
                     </p>
                   </div>
                   <Link
