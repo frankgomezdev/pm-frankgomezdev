@@ -68,6 +68,8 @@ Never push commits directly to `main` or `dev` if branch protection is on (recom
 
 ## Milestone guidance (this project)
 
+Work slices (feat branches per milestone): [milestone-work-slices.md](./milestone-work-slices.md).
+
 | Milestone | Land on `dev` first | Promote to `main` when |
 |-----------|------------------------|-------------------------|
 | A — Scaffold & auth | Yes | Signup -> gated home works on Preview |

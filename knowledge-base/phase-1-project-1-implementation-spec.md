@@ -236,6 +236,8 @@ Prefer **Next.js Route Handlers** under `app/api/` (Vercel serverless) + Firebas
 
 ## 9. Milestone build order
 
+Feat-branch slices for landing work on `dev`: [docs/milestone-work-slices.md](../docs/milestone-work-slices.md).
+
 ### Milestone A — Scaffold & auth
 
 - Next.js + TS app; Firebase project; Auth email/password; env wiring; Vercel preview  
