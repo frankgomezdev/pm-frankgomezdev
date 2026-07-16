@@ -1,6 +1,9 @@
 /**
  * Firebase web config from public env vars.
  * Web API keys are expected to be public; never put Admin/service-account secrets here.
+ *
+ * Important: Next.js only inlines NEXT_PUBLIC_* when accessed as static property reads
+ * (process.env.NEXT_PUBLIC_FOO). Dynamic process.env[key] is always undefined in the client bundle.
  */
 
 export type FirebaseClientConfig = {
@@ -12,17 +15,29 @@ export type FirebaseClientConfig = {
   appId: string;
 };
 
-const REQUIRED_KEYS = [
-  "NEXT_PUBLIC_FIREBASE_API_KEY",
-  "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-  "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-  "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
-  "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
-  "NEXT_PUBLIC_FIREBASE_APP_ID",
-] as const;
+function readFirebaseEnv() {
+  return {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim() ?? "",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim() ?? "",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ?? "",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ?? "",
+    messagingSenderId:
+      process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID?.trim() ?? "",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.trim() ?? "",
+  };
+}
 
 export function getMissingFirebaseEnvKeys(): string[] {
-  return REQUIRED_KEYS.filter((key) => !process.env[key]?.trim());
+  const env = readFirebaseEnv();
+  const checks: Array<[string, string]> = [
+    ["NEXT_PUBLIC_FIREBASE_API_KEY", env.apiKey],
+    ["NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", env.authDomain],
+    ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", env.projectId],
+    ["NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", env.storageBucket],
+    ["NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", env.messagingSenderId],
+    ["NEXT_PUBLIC_FIREBASE_APP_ID", env.appId],
+  ];
+  return checks.filter(([, value]) => !value).map(([key]) => key);
 }
 
 export function isFirebaseConfigured(): boolean {
@@ -37,12 +52,5 @@ export function getFirebaseClientConfig(): FirebaseClientConfig {
     );
   }
 
-  return {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  };
+  return readFirebaseEnv();
 }
