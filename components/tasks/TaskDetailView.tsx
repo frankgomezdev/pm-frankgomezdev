@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { getTask, updateTask } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
+import type { Outcome } from "@/lib/types/outcome";
 import type { Project } from "@/lib/types/project";
 import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 
@@ -17,6 +20,7 @@ export function TaskDetailView() {
   const [task, setTask] = useState<Task | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,6 +31,7 @@ export function TaskDetailView() {
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState("");
+  const [outcomeId, setOutcomeId] = useState<string | null>(null);
 
   const projectOptions = useMemo(() => {
     if (!task) return projects.filter((p) => p.status === "active");
@@ -55,6 +60,9 @@ export function TaskDetailView() {
         setStatus(row.status);
         setAssigneeId(row.assigneeId);
         setProjectId(row.projectId);
+        setOutcomeId(row.outcomeId);
+        const outcomeRows = await listOutcomesByProject(row.projectId);
+        setOutcomes(outcomeRows);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load task.");
@@ -67,6 +75,25 @@ export function TaskDetailView() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!projectId) {
+      setOutcomes([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await listOutcomesByProject(projectId);
+        if (!cancelled) setOutcomes(rows);
+      } catch {
+        if (!cancelled) setOutcomes([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
   async function onSave(event: FormEvent) {
     event.preventDefault();
     if (!task) return;
@@ -76,7 +103,7 @@ export function TaskDetailView() {
     try {
       await updateTask(
         taskId,
-        { title, description, status, assigneeId, projectId },
+        { title, description, status, assigneeId, projectId, outcomeId },
         task,
       );
       await refresh();
@@ -115,6 +142,7 @@ export function TaskDetailView() {
         <h1 className="text-2xl font-semibold tracking-tight">Edit task</h1>
         <p className="text-sm text-zinc-500">
           Status, assignee, and title changes bump <code>lastMovedAt</code>.
+          Link an outcome so work maps to a meaningful goal.
         </p>
       </div>
 
@@ -156,7 +184,10 @@ export function TaskDetailView() {
           <select
             required
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
+            onChange={(e) => {
+              setProjectId(e.target.value);
+              setOutcomeId(null);
+            }}
             className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           >
             {projectOptions.map((p) => (
@@ -166,6 +197,15 @@ export function TaskDetailView() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-zinc-700">Outcome</span>
+          <OutcomePicker
+            outcomes={outcomes}
+            value={outcomeId}
+            onChange={setOutcomeId}
+            disabled={busy}
+          />
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">

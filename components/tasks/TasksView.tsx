@@ -4,10 +4,13 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { createTask, listTasks } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
+import type { Outcome } from "@/lib/types/outcome";
 import type { Project } from "@/lib/types/project";
 import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 
@@ -28,6 +31,7 @@ export function TasksView() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,6 +41,7 @@ export function TasksView() {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [outcomeId, setOutcomeId] = useState<string | null>(null);
 
   const filters: FilterState = useMemo(
     () => ({
@@ -76,6 +81,17 @@ export function TasksView() {
     return map;
   }, [users]);
 
+  const outcomeById = useMemo(() => {
+    const map = new Map<string, Outcome>();
+    for (const o of outcomes) map.set(o.id, o);
+    return map;
+  }, [outcomes]);
+
+  const createOutcomes = useMemo(
+    () => outcomes.filter((o) => o.projectId === projectId),
+    [outcomes, projectId],
+  );
+
   const activeProjects = useMemo(
     () => projects.filter((p) => p.status === "active"),
     [projects],
@@ -106,14 +122,16 @@ export function TasksView() {
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [taskRows, projectRows, userRows] = await Promise.all([
+      const [taskRows, projectRows, userRows, outcomeRows] = await Promise.all([
         listTasks(),
         listProjects(),
         listCohortUsers(),
+        listAllOutcomes(),
       ]);
       setTasks(taskRows);
       setProjects(projectRows);
       setUsers(userRows);
+      setOutcomes(outcomeRows);
       setProjectId((current) => {
         if (current) return current;
         const firstActive = projectRows.find((p) => p.status === "active");
@@ -141,13 +159,14 @@ export function TasksView() {
     setError(null);
     try {
       await createTask(
-        { projectId, title, description, status, assigneeId },
+        { projectId, title, description, status, assigneeId, outcomeId },
         user.uid,
       );
       setTitle("");
       setDescription("");
       setStatus(defaultStatus);
       setAssigneeId(null);
+      setOutcomeId(null);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task.");
@@ -200,7 +219,10 @@ export function TasksView() {
               <select
                 required
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                onChange={(e) => {
+                  setProjectId(e.target.value);
+                  setOutcomeId(null);
+                }}
                 className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
               >
                 {activeProjects.map((p) => (
@@ -227,6 +249,15 @@ export function TasksView() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-zinc-700">Outcome</span>
+              <OutcomePicker
+                outcomes={createOutcomes}
+                value={outcomeId}
+                onChange={setOutcomeId}
+                disabled={busy}
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -345,6 +376,9 @@ export function TasksView() {
             const assignee = task.assigneeId
               ? userById.get(task.assigneeId)
               : null;
+            const outcome = task.outcomeId
+              ? outcomeById.get(task.outcomeId)
+              : null;
             const statusLabel =
               TASK_STATUSES.find((s) => s.value === task.status)?.label ??
               task.status;
@@ -364,6 +398,7 @@ export function TasksView() {
                     <p className="mt-1 text-sm text-zinc-500">
                       {project?.title ?? "Unknown project"} · {statusLabel} ·{" "}
                       {assignee ? assignee.displayName : "Unassigned"}
+                      {outcome ? ` · ${outcome.title}` : " · No outcome"}
                     </p>
                   </div>
                   <Link

@@ -97,7 +97,7 @@ export async function createTask(
   const now = serverTimestamp();
   const ref = await addDoc(collection(getFirestoreDb(), "tasks"), {
     projectId: input.projectId,
-    outcomeId: null,
+    outcomeId: input.outcomeId,
     title,
     description: input.description.trim(),
     status: input.status,
@@ -130,6 +130,7 @@ export async function updateTask(
 
   await updateDoc(doc(getFirestoreDb(), "tasks", taskId), {
     projectId: input.projectId,
+    outcomeId: input.outcomeId,
     title,
     description: input.description.trim(),
     status: input.status,

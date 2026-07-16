@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { createTask, listTasksByProject } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
+import type { Outcome } from "@/lib/types/outcome";
 import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 
 type Props = {
@@ -17,6 +20,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,6 +29,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [outcomeId, setOutcomeId] = useState<string | null>(null);
 
   const userById = useMemo(() => {
     const map = new Map<string, CohortUser>();
@@ -32,15 +37,23 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
     return map;
   }, [users]);
 
+  const outcomeById = useMemo(() => {
+    const map = new Map<string, Outcome>();
+    for (const o of outcomes) map.set(o.id, o);
+    return map;
+  }, [outcomes]);
+
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [taskRows, userRows] = await Promise.all([
+      const [taskRows, userRows, outcomeRows] = await Promise.all([
         listTasksByProject(projectId),
         listCohortUsers(),
+        listOutcomesByProject(projectId),
       ]);
       setTasks(taskRows);
       setUsers(userRows);
+      setOutcomes(outcomeRows);
     } catch (err) {
       setError(
         err instanceof Error
@@ -69,6 +82,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
           description,
           status,
           assigneeId,
+          outcomeId,
         },
         user.uid,
       );
@@ -76,6 +90,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
       setDescription("");
       setStatus("todo");
       setAssigneeId(null);
+      setOutcomeId(null);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task.");
@@ -108,7 +123,10 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
       )}
 
       {projectActive && (
-        <form onSubmit={onCreate} className="flex flex-col gap-3 border-t border-zinc-100 pt-4">
+        <form
+          onSubmit={onCreate}
+          className="flex flex-col gap-3 border-t border-zinc-100 pt-4"
+        >
           <h3 className="text-sm font-medium text-zinc-800">Add task</h3>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-700">Title</span>
@@ -126,6 +144,15 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Outcome</span>
+            <OutcomePicker
+              outcomes={outcomes}
+              value={outcomeId}
+              onChange={setOutcomeId}
+              disabled={busy}
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -175,6 +202,9 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
             const assignee = task.assigneeId
               ? userById.get(task.assigneeId)
               : null;
+            const outcome = task.outcomeId
+              ? outcomeById.get(task.outcomeId)
+              : null;
             const statusLabel =
               TASK_STATUSES.find((s) => s.value === task.status)?.label ??
               task.status;
@@ -193,6 +223,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
                   <p className="text-xs text-zinc-500">
                     {statusLabel} ·{" "}
                     {assignee ? assignee.displayName : "Unassigned"}
+                    {outcome ? ` · ${outcome.title}` : " · No outcome"}
                   </p>
                 </div>
                 <Link
