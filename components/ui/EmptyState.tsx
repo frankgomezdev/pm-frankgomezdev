@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { Button } from "@/components/catalyst/button";
+import { Subheading } from "@/components/catalyst/heading";
+import { Text } from "@/components/catalyst/text";
 
 type Props = {
   title: string;
@@ -14,18 +16,13 @@ export function EmptyState({
   actionLabel,
 }: Props) {
   return (
-    <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-10 text-center shadow-sm">
-      <p className="text-base font-medium tracking-tight text-zinc-900">
-        {title}
-      </p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-zinc-500">{description}</p>
+    <div className="rounded-xl border border-dashed border-zinc-950/10 px-6 py-10 text-center dark:border-white/10">
+      <Subheading level={3}>{title}</Subheading>
+      <Text className="mx-auto mt-1 max-w-md">{description}</Text>
       {actionHref && actionLabel ? (
-        <Link
-          href={actionHref}
-          className="mt-4 inline-flex rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
+        <Button href={actionHref} className="mt-4">
           {actionLabel}
-        </Link>
+        </Button>
       ) : null}
     </div>
   );

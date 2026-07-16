@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/catalyst/select";
 import type { Outcome } from "@/lib/types/outcome";
 
 type Props = {
@@ -27,14 +28,13 @@ export function OutcomePicker({
   const doneOutcomes = outcomes.filter((o) => o.status === "done");
 
   return (
-    <div className="flex flex-col gap-1">
-      <select
+    <div className="flex flex-col gap-1.5">
+      <Select
         id={id}
         name={name}
         disabled={disabled}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? e.target.value : null)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 disabled:opacity-60"
       >
         <option value="">No outcome linked</option>
         {openOutcomes.map((o) => (
@@ -47,15 +47,15 @@ export function OutcomePicker({
             {o.title} (done)
           </option>
         ))}
-      </select>
+      </Select>
       {encourageLink && !value && (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs/5 text-amber-700 dark:text-amber-500">
           Link a meaningful outcome so progress is visible later — not required,
           but strongly encouraged.
         </p>
       )}
       {outcomes.length === 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs/5 text-zinc-500 dark:text-zinc-400">
           No outcomes for this project yet. Create one on the project page.
         </p>
       )}

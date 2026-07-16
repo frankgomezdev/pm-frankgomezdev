@@ -1,13 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/catalyst/button";
+import { Divider } from "@/components/catalyst/divider";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Subheading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Link } from "@/components/catalyst/link";
+import { Select } from "@/components/catalyst/select";
+import { Text, TextLink } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { ErrorBanner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { createTask, listTasksByProject } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
@@ -111,121 +119,105 @@ export function ProjectTasksSection({
   }
 
   return (
-    <section className={`flex flex-col gap-4 ${cardPaddingClassName}`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-            Tasks
-          </h2>
-          <p className="text-sm text-zinc-500">
-            Tasks in this project.{" "}
-            <Link
-              href={`/tasks?project=${projectId}`}
-              className="underline hover:text-zinc-800"
-            >
-              Open in Tasks with filter
-            </Link>
-          </p>
-        </div>
+    <section className="flex flex-col gap-4">
+      <div>
+        <Subheading level={2}>Tasks</Subheading>
+        <Text className="mt-1">
+          Tasks in this project.{" "}
+          <TextLink href={`/tasks?project=${projectId}`}>
+            Open in Tasks with filter
+          </TextLink>
+        </Text>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {projectActive && (
-        <form
-          onSubmit={onCreate}
-          className="flex flex-col gap-3 border-t border-zinc-100 pt-4"
-        >
-          <h3 className="text-sm font-medium text-zinc-800">Add task</h3>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Title</span>
-            <input
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+        <>
+          <Divider soft />
+          <form onSubmit={onCreate} className="flex flex-col gap-4">
+            <Subheading level={3} className="text-sm/6">
+              Add task
+            </Subheading>
+            <Field>
+              <Label>Title</Label>
+              <Input
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+            <GoalQualityNudge
+              title={title}
+              enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
+              onApplyRewrite={setTitle}
+              onApplySplit={(lines) =>
+                setDescription((prev) => {
+                  const block = [
+                    "Suggested smaller steps:",
+                    ...lines.map((l) => `• ${l}`),
+                  ].join("\n");
+                  return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+                })
+              }
             />
-          </label>
-          <GoalQualityNudge
-            title={title}
-            enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
-            onApplyRewrite={setTitle}
-            onApplySplit={(lines) =>
-              setDescription((prev) => {
-                const block = [
-                  "Suggested smaller steps:",
-                  ...lines.map((l) => `• ${l}`),
-                ].join("\n");
-                return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
-              })
-            }
-          />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Description</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Outcome</span>
-            <OutcomePicker
-              outcomes={outcomes}
-              value={outcomeId}
-              onChange={setOutcomeId}
-              disabled={busy}
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Status</span>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-              >
-                {TASK_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Assignee</span>
-              <AssigneePicker
-                users={users}
-                value={assigneeId}
-                onChange={setAssigneeId}
+            <Field>
+              <Label>Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+              />
+            </Field>
+            <Field>
+              <Label>Outcome</Label>
+              <OutcomePicker
+                outcomes={outcomes}
+                value={outcomeId}
+                onChange={setOutcomeId}
                 disabled={busy}
               />
-            </label>
-          </div>
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-          >
-            {busy ? "Saving…" : "Add task"}
-          </button>
-        </form>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <Label>Status</Label>
+                <Select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                >
+                  {TASK_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field>
+                <Label>Assignee</Label>
+                <AssigneePicker
+                  users={users}
+                  value={assigneeId}
+                  onChange={setAssigneeId}
+                  disabled={busy}
+                />
+              </Field>
+            </div>
+            <Button type="submit" disabled={busy} className="w-fit">
+              {busy ? "Saving…" : "Add task"}
+            </Button>
+          </form>
+        </>
       )}
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading tasks…</p>
+        <Text>Loading tasks…</Text>
       ) : tasks.length === 0 ? (
         <EmptyState
           title="No tasks in this project"
           description="Add a task above, or create one from the Tasks page with this project selected."
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {tasks.map((task) => {
             const assignee = task.assigneeId
               ? userById.get(task.assigneeId)
@@ -236,29 +228,26 @@ export function ProjectTasksSection({
             return (
               <li
                 key={task.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2.5"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-950/10 px-4 py-3 dark:border-white/10"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/tasks/${task.id}`}
-                      className="font-medium text-zinc-900 hover:underline"
+                      className="font-medium text-zinc-950 hover:underline dark:text-white"
                     >
                       {task.title}
                     </Link>
                     <StatusPill status={task.status} />
                   </div>
-                  <p className="mt-0.5 text-xs text-zinc-500">
+                  <Text className="mt-0.5 text-xs/5">
                     {assignee ? assignee.displayName : "Unassigned"}
                     {outcome ? ` · ${outcome.title}` : " · No outcome"}
-                  </p>
+                  </Text>
                 </div>
-                <Link
-                  href={`/tasks/${task.id}`}
-                  className="rounded-lg border border-zinc-300 px-2.5 py-1 text-sm text-zinc-700 hover:bg-white"
-                >
+                <Button href={`/tasks/${task.id}`} outline>
                   Open
-                </Link>
+                </Button>
               </li>
             );
           })}

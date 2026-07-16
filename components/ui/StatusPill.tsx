@@ -1,9 +1,10 @@
+import { Badge } from "@/components/catalyst/badge";
 import { TASK_STATUSES, type TaskStatus } from "@/lib/types/task";
 
-const STATUS_STYLES: Record<TaskStatus, string> = {
-  todo: "bg-zinc-100 text-zinc-700",
-  in_progress: "bg-sky-100 text-sky-900",
-  done: "bg-emerald-100 text-emerald-900",
+const STATUS_COLORS: Record<TaskStatus, "zinc" | "sky" | "emerald"> = {
+  todo: "zinc",
+  in_progress: "sky",
+  done: "emerald",
 };
 
 type StatusPillProps = {
@@ -11,15 +12,13 @@ type StatusPillProps = {
   className?: string;
 };
 
-export function StatusPill({ status, className = "" }: StatusPillProps) {
+export function StatusPill({ status, className }: StatusPillProps) {
   const label =
     TASK_STATUSES.find((s) => s.value === status)?.label ?? status;
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status]} ${className}`}
-    >
+    <Badge color={STATUS_COLORS[status]} className={className}>
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -29,21 +28,15 @@ type FlagPillProps = {
   className?: string;
 };
 
-export function FlagPill({ kind, daysQuiet, className = "" }: FlagPillProps) {
-  const styles =
-    kind === "blocked"
-      ? "bg-amber-100 text-amber-900"
-      : "bg-zinc-100 text-zinc-700";
+export function FlagPill({ kind, daysQuiet, className }: FlagPillProps) {
   const label =
     kind === "blocked"
       ? "Blocked"
       : `Quiet${typeof daysQuiet === "number" ? ` ${daysQuiet}d` : ""}`;
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles} ${className}`}
-    >
+    <Badge color={kind === "blocked" ? "amber" : "zinc"} className={className}>
       {label}
-    </span>
+    </Badge>
   );
 }

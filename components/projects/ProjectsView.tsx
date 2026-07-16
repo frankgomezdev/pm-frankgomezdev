@@ -1,10 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/catalyst/badge";
+import { Button } from "@/components/catalyst/button";
+import { Checkbox, CheckboxField } from "@/components/catalyst/checkbox";
+import { Divider } from "@/components/catalyst/divider";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Heading, Subheading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Link } from "@/components/catalyst/link";
+import { Text } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import {
   createProject,
   listProjects,
@@ -120,75 +129,63 @@ export function ProjectsView() {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading projects…</p>;
+    return <Text>Loading projects…</Text>;
   }
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-zinc-600">
+          <Heading>Projects</Heading>
+          <Text className="mt-1">
             Create, edit, and archive cohort projects.
-          </p>
+          </Text>
         </div>
-        <label className="flex items-center gap-2 text-sm text-zinc-600">
-          <input
-            type="checkbox"
+        <CheckboxField>
+          <Checkbox
             checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
+            onChange={(checked) => setShowArchived(checked)}
           />
-          Show archived
-        </label>
+          <Label>Show archived</Label>
+        </CheckboxField>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {!showArchived && (
-        <form
-          onSubmit={onCreate}
-          className={`flex flex-col gap-3 ${cardPaddingClassName}`}
-        >
-          <h2 className="text-sm font-semibold text-zinc-900">New project</h2>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Title</span>
-            <input
+        <form onSubmit={onCreate} className="flex flex-col gap-4">
+          <Subheading level={2}>New project</Subheading>
+          <Field>
+            <Label>Title</Label>
+            <Input
               required
               value={createDraft.title}
               onChange={(e) =>
                 setCreateDraft((d) => ({ ...d, title: e.target.value }))
               }
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
               placeholder="e.g. Phase 1 Project 1"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Description</span>
-            <textarea
+          </Field>
+          <Field>
+            <Label>Description</Label>
+            <Textarea
               value={createDraft.description}
               onChange={(e) =>
                 setCreateDraft((d) => ({ ...d, description: e.target.value }))
               }
               rows={3}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
               placeholder="What this project is for"
             />
-          </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-          >
+          </Field>
+          <Button type="submit" disabled={busy} className="w-fit">
             {busy ? "Saving…" : "Create project"}
-          </button>
+          </Button>
         </form>
       )}
 
-      <ul className="flex flex-col gap-3">
+      <Divider soft />
+
+      <ul className="flex flex-col gap-6">
         {visible.length === 0 ? (
           <li>
             <EmptyState
@@ -203,118 +200,109 @@ export function ProjectsView() {
             />
           </li>
         ) : (
-          visible.map((project) => (
-          <li
-            key={project.id}
-            className={cardPaddingClassName}
-          >
-            {editingId === project.id ? (
-              <form onSubmit={onSaveEdit} className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-zinc-700">Title</span>
-                  <input
-                    required
-                    value={editDraft.title}
-                    onChange={(e) =>
-                      setEditDraft((d) => ({ ...d, title: e.target.value }))
-                    }
-                    className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-zinc-700">Description</span>
-                  <textarea
-                    value={editDraft.description}
-                    onChange={(e) =>
-                      setEditDraft((d) => ({
-                        ...d,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-                  />
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white disabled:opacity-60"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(null)}
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <Link
-                    href={`/projects/${project.id}`}
-                    className="text-lg font-medium text-zinc-900 hover:underline"
-                  >
-                    {project.title}
-                  </Link>
-                  {project.description ? (
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">
-                      {project.description}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-sm italic text-zinc-400">
-                      No description
-                    </p>
-                  )}
-                  <p className="mt-2 text-xs uppercase tracking-wide text-zinc-400">
-                    {project.status}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <Link
-                    href={`/projects/${project.id}`}
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Open
-                  </Link>
-                  {project.status === "active" && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => startEdit(project)}
-                        className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void onArchive(project.id)}
-                        className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
-                      >
-                        Archive
-                      </button>
-                    </>
-                  )}
-                  {project.status === "archived" && (
-                    <button
+          visible.map((project, index) => (
+            <li key={project.id} className="flex flex-col gap-6">
+              {index > 0 && <Divider soft />}
+              {editingId === project.id ? (
+                <form onSubmit={onSaveEdit} className="flex flex-col gap-4">
+                  <Field>
+                    <Label>Title</Label>
+                    <Input
+                      required
+                      value={editDraft.title}
+                      onChange={(e) =>
+                        setEditDraft((d) => ({ ...d, title: e.target.value }))
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <Label>Description</Label>
+                    <Textarea
+                      value={editDraft.description}
+                      onChange={(e) =>
+                        setEditDraft((d) => ({
+                          ...d,
+                          description: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                    />
+                  </Field>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={busy}>
+                      Save
+                    </Button>
+                    <Button
                       type="button"
-                      disabled={busy}
-                      onClick={() => void onRestore(project.id)}
-                      className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                      outline
+                      onClick={() => setEditingId(null)}
                     >
-                      Restore
-                    </button>
-                  )}
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="text-lg font-medium text-zinc-950 hover:underline dark:text-white"
+                      >
+                        {project.title}
+                      </Link>
+                      <Badge
+                        color={project.status === "active" ? "lime" : "zinc"}
+                      >
+                        {project.status}
+                      </Badge>
+                    </div>
+                    {project.description ? (
+                      <Text className="mt-1 whitespace-pre-wrap">
+                        {project.description}
+                      </Text>
+                    ) : (
+                      <Text className="mt-1 italic">No description</Text>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button href={`/projects/${project.id}`} outline>
+                      Open
+                    </Button>
+                    {project.status === "active" && (
+                      <>
+                        <Button
+                          type="button"
+                          outline
+                          disabled={busy}
+                          onClick={() => startEdit(project)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          outline
+                          disabled={busy}
+                          onClick={() => void onArchive(project.id)}
+                        >
+                          Archive
+                        </Button>
+                      </>
+                    )}
+                    {project.status === "archived" && (
+                      <Button
+                        type="button"
+                        outline
+                        disabled={busy}
+                        onClick={() => void onRestore(project.id)}
+                      >
+                        Restore
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </li>
+              )}
+            </li>
           ))
         )}
       </ul>

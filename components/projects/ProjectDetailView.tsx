@@ -1,8 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { Badge } from "@/components/catalyst/badge";
+import { Button } from "@/components/catalyst/button";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Heading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Link } from "@/components/catalyst/link";
+import { Text, TextLink } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
+import { ErrorBanner } from "@/components/ui/Banner";
 import {
   getProject,
   setProjectStatus,
@@ -99,114 +107,102 @@ export function ProjectDetailView() {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading project…</p>;
+    return <Text>Loading project…</Text>;
   }
 
   if (!project) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-zinc-700">Project not found.</p>
-        <Link href="/projects" className="text-sm text-zinc-600 underline">
-          Back to projects
-        </Link>
+        <Text>Project not found.</Text>
+        <Text>
+          <TextLink href="/projects">Back to projects</TextLink>
+        </Text>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
         <Link
           href="/projects"
-          className="text-sm text-zinc-500 hover:text-zinc-800"
+          className="text-sm/6 text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
         >
           ← Projects
         </Link>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {editing ? (
-        <form onSubmit={onSave} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Title</span>
-            <input
+        <form onSubmit={onSave} className="flex flex-col gap-4">
+          <Field>
+            <Label>Title</Label>
+            <Input
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Description</span>
-            <textarea
+          </Field>
+          <Field>
+            <Label>Description</Label>
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             />
-          </label>
+          </Field>
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white disabled:opacity-60"
-            >
+            <Button type="submit" disabled={busy}>
               Save
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              outline
               onClick={() => {
                 setEditing(false);
                 setTitle(project.title);
                 setDescription(project.description);
               }}
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {project.title}
-              </h1>
-              <p className="mt-1 text-xs uppercase tracking-wide text-zinc-400">
-                {project.status}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Heading>{project.title}</Heading>
+                <Badge color={project.status === "active" ? "lime" : "zinc"}>
+                  {project.status}
+                </Badge>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
+              <Button
                 type="button"
+                outline
                 disabled={busy}
                 onClick={() => setEditing(true)}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-60"
               >
                 Edit
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                outline
                 disabled={busy}
                 onClick={() => void onToggleArchive()}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-60"
               >
                 {project.status === "active" ? "Archive" : "Restore"}
-              </button>
+              </Button>
             </div>
           </div>
           {project.description ? (
-            <p className="whitespace-pre-wrap text-zinc-600">
-              {project.description}
-            </p>
+            <Text className="whitespace-pre-wrap">{project.description}</Text>
           ) : (
-            <p className="italic text-zinc-400">No description</p>
+            <Text className="italic">No description</Text>
           )}
         </div>
       )}
