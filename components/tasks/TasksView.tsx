@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { listProjects } from "@/lib/projects/api";
@@ -18,30 +19,12 @@ type FilterState = {
   assigneeId: string; // "" = all, "unassigned" = none
 };
 
-function readFiltersFromSearch(): FilterState {
-  if (typeof window === "undefined") {
-    return { projectId: "", status: "", assigneeId: "" };
-  }
-  const params = new URLSearchParams(window.location.search);
-  return {
-    projectId: params.get("project") ?? "",
-    status: params.get("status") ?? "",
-    assigneeId: params.get("assignee") ?? "",
-  };
-}
-
-function writeFiltersToSearch(filters: FilterState) {
-  const params = new URLSearchParams();
-  if (filters.projectId) params.set("project", filters.projectId);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.assigneeId) params.set("assignee", filters.assigneeId);
-  const qs = params.toString();
-  const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
-  window.history.replaceState(null, "", next);
-}
-
 export function TasksView() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
@@ -55,15 +38,31 @@ export function TasksView() {
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<FilterState>({
-    projectId: "",
-    status: "",
-    assigneeId: "",
-  });
+  const filters: FilterState = useMemo(
+    () => ({
+      projectId: searchParams.get("project") ?? "",
+      status: searchParams.get("status") ?? "",
+      assigneeId: searchParams.get("assignee") ?? "",
+    }),
+    [searchParams],
+  );
 
-  useEffect(() => {
-    setFilters(readFiltersFromSearch());
-  }, []);
+  const updateFilters = useCallback(
+    (patch: Partial<FilterState>) => {
+      const next = { ...filters, ...patch };
+      const params = new URLSearchParams();
+      if (next.projectId) params.set("project", next.projectId);
+      if (next.status) params.set("status", next.status);
+      if (next.assigneeId) params.set("assignee", next.assigneeId);
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [filters, pathname, router],
+  );
+
+  const clearFilters = useCallback(() => {
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router]);
 
   const projectById = useMemo(() => {
     const map = new Map<string, Project>();
@@ -134,20 +133,6 @@ export function TasksView() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  function updateFilters(patch: Partial<FilterState>) {
-    setFilters((prev) => {
-      const next = { ...prev, ...patch };
-      writeFiltersToSearch(next);
-      return next;
-    });
-  }
-
-  function clearFilters() {
-    const empty = { projectId: "", status: "", assigneeId: "" };
-    setFilters(empty);
-    writeFiltersToSearch(empty);
-  }
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
