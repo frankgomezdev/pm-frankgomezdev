@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import {
   createProject,
   listProjects,
@@ -150,7 +151,7 @@ export function ProjectsView() {
       {!showArchived && (
         <form
           onSubmit={onCreate}
-          className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+          className={`flex flex-col gap-3 ${cardPaddingClassName}`}
         >
           <h2 className="text-sm font-semibold text-zinc-900">New project</h2>
           <label className="flex flex-col gap-1 text-sm">
@@ -205,7 +206,7 @@ export function ProjectsView() {
           visible.map((project) => (
           <li
             key={project.id}
-            className="rounded-lg border border-zinc-200 bg-white p-4"
+            className={cardPaddingClassName}
           >
             {editingId === project.id ? (
               <form onSubmit={onSaveEdit} className="flex flex-col gap-3">

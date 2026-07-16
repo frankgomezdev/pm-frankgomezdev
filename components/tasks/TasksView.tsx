@@ -8,6 +8,8 @@ import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cardPaddingClassName } from "@/components/ui/cardStyles";
+import { StatusPill } from "@/components/ui/StatusPill";
 import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { createTask, listTasks } from "@/lib/tasks/api";
@@ -212,7 +214,7 @@ export function TasksView() {
 
       <form
         onSubmit={onCreate}
-        className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+        className={`flex flex-col gap-3 ${cardPaddingClassName}`}
       >
         <h2 className="text-sm font-semibold text-zinc-900">New task</h2>
 
@@ -321,7 +323,7 @@ export function TasksView() {
         )}
       </form>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+      <section className={`flex flex-col gap-3 ${cardPaddingClassName}`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-zinc-900">Filters</h2>
           {filtersActive && (
@@ -413,31 +415,28 @@ export function TasksView() {
             const outcome = task.outcomeId
               ? outcomeById.get(task.outcomeId)
               : null;
-            const statusLabel =
-              TASK_STATUSES.find((s) => s.value === task.status)?.label ??
-              task.status;
             return (
-              <li
-                key={task.id}
-                className="rounded-lg border border-zinc-200 bg-white p-4"
-              >
+              <li key={task.id} className={cardPaddingClassName}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <Link
-                      href={`/tasks/${task.id}`}
-                      className="text-lg font-medium text-zinc-900 hover:underline"
-                    >
-                      {task.title}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className="text-lg font-medium text-zinc-900 hover:underline"
+                      >
+                        {task.title}
+                      </Link>
+                      <StatusPill status={task.status} />
+                    </div>
                     <p className="mt-1 text-sm text-zinc-500">
-                      {project?.title ?? "Unknown project"} · {statusLabel} ·{" "}
+                      {project?.title ?? "Unknown project"} ·{" "}
                       {assignee ? assignee.displayName : "Unassigned"}
                       {outcome ? ` · ${outcome.title}` : " · No outcome"}
                     </p>
                   </div>
                   <Link
                     href={`/tasks/${task.id}`}
-                    className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                    className="shrink-0 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
                   >
                     Open
                   </Link>

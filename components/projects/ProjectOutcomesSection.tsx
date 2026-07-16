@@ -9,6 +9,7 @@ import {
   type OutcomeStatus,
 } from "@/lib/types/outcome";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cardPaddingClassName } from "@/components/ui/cardStyles";
 
 type Props = {
   projectId: string;
@@ -92,9 +93,11 @@ export function ProjectOutcomesSection({
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4">
+    <section className={`flex flex-col gap-4 ${cardPaddingClassName}`}>
       <div>
-        <h2 className="text-sm font-semibold text-zinc-900">Outcomes</h2>
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+          Outcomes
+        </h2>
         <p className="text-sm text-zinc-500">
           Meaningful goals tasks contribute to (e.g. “Ship Project 2 comms”) —
           not vanity metrics.

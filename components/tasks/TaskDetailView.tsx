@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { getTask, listTasks, updateTask } from "@/lib/tasks/api";
@@ -205,7 +206,7 @@ export function TaskDetailView() {
 
       <form
         onSubmit={onSave}
-        className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+        className={`flex flex-col gap-3 ${cardPaddingClassName}`}
       >
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-zinc-700">Title</span>

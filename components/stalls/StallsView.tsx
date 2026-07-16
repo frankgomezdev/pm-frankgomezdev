@@ -9,40 +9,34 @@ import {
   type StallRadarItem,
 } from "@/lib/stalls/api";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { TASK_STATUSES } from "@/lib/types/task";
+import { cardPaddingClassName } from "@/components/ui/cardStyles";
+import { FlagPill, StatusPill } from "@/components/ui/StatusPill";
 
 function StallCard({ item }: { item: StallRadarItem }) {
-  const statusLabel =
-    TASK_STATUSES.find((s) => s.value === item.task.status)?.label ??
-    item.task.status;
-
   return (
-    <li className="rounded-lg border border-zinc-200 bg-white p-4">
+    <li className={cardPaddingClassName}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <Link
-            href={`/tasks/${item.task.id}`}
-            className="text-lg font-medium text-zinc-900 hover:underline"
-          >
-            {item.task.title}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/tasks/${item.task.id}`}
+              className="text-lg font-medium text-zinc-900 hover:underline"
+            >
+              {item.task.title}
+            </Link>
+            <StatusPill status={item.task.status} />
+          </div>
           <p className="mt-1 text-sm text-zinc-500">
-            {item.projectTitle} · {statusLabel} ·{" "}
-            {item.assigneeLabel ?? "Unassigned"}
+            {item.projectTitle} · {item.assigneeLabel ?? "Unassigned"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {item.reasons.map((reason) => (
-            <span
+            <FlagPill
               key={reason}
-              className={
-                reason === "blocked"
-                  ? "rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-amber-900"
-                  : "rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-zinc-700"
-              }
-            >
-              {reason === "blocked" ? "Blocked" : `Quiet ${item.daysQuiet}d`}
-            </span>
+              kind={reason === "blocked" ? "blocked" : "quiet"}
+              daysQuiet={reason !== "blocked" ? item.daysQuiet : undefined}
+            />
           ))}
         </div>
       </div>
@@ -101,7 +95,7 @@ function StallCard({ item }: { item: StallRadarItem }) {
       <div className="mt-3">
         <Link
           href={`/tasks/${item.task.id}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
         >
           Open task
         </Link>
@@ -148,7 +142,7 @@ export function StallsView() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Stalls</h1>
-        <p className="text-zinc-600">
+        <p className="mt-1 text-zinc-600">
           Quiet tasks (no movement for {threshold}+ days) and blocked work —
           with who/what unblocks whom.
         </p>

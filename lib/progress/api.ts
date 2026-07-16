@@ -1,6 +1,7 @@
 import { listRecentActivity, startOfLocalDayMs } from "@/lib/activity/api";
 import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listTasks } from "@/lib/tasks/api";
+import { isTaskBlocked, isTaskStalled } from "@/lib/tasks/stall";
 import type { ActivityEvent } from "@/lib/types/activity";
 import type { Outcome } from "@/lib/types/outcome";
 
@@ -10,14 +11,23 @@ export type OutcomeProgress = {
   totalCount: number;
 };
 
+export type ProgressStats = {
+  todoCount: number;
+  inProgressCount: number;
+  doneCount: number;
+  attentionCount: number;
+};
+
 export type ProgressHomeData = {
   myToday: ActivityEvent[];
   myRecent: ActivityEvent[];
   outcomeProgress: OutcomeProgress[];
+  stats: ProgressStats;
 };
 
 export async function loadProgressHome(
   actorId: string,
+  stallDaysThreshold = 3,
 ): Promise<ProgressHomeData> {
   const [activity, outcomes, tasks] = await Promise.all([
     listRecentActivity(50),
@@ -51,5 +61,16 @@ export async function loadProgressHome(
     })
     .sort((a, b) => a.outcome.title.localeCompare(b.outcome.title));
 
-  return { myToday, myRecent, outcomeProgress };
+  const active = tasks.filter((t) => !t.archived);
+  const stats: ProgressStats = {
+    todoCount: active.filter((t) => t.status === "todo").length,
+    inProgressCount: active.filter((t) => t.status === "in_progress").length,
+    doneCount: active.filter((t) => t.status === "done").length,
+    attentionCount: active.filter(
+      (t) =>
+        isTaskBlocked(t) || isTaskStalled(t, stallDaysThreshold),
+    ).length,
+  };
+
+  return { myToday, myRecent, outcomeProgress, stats };
 }
