@@ -13,12 +13,17 @@ import {
 import { logActivity } from "@/lib/activity/api";
 import {
   messageAssigned,
+  messageBlockerCleared,
   messageStatusChanged,
   messageTaskCreated,
   resolveOutcomeTitle,
   resolveUserLabel,
 } from "@/lib/activity/messages";
 import { getFirestoreDb } from "@/lib/firebase/client";
+import {
+  blockerFieldsChanged,
+  wasBlockerCleared,
+} from "@/lib/tasks/stall";
 import type {
   Task,
   TaskCreateInput,
@@ -151,10 +156,23 @@ export async function updateTask(
   if (!title) throw new Error("Task title is required.");
   if (!input.projectId) throw new Error("Choose a project.");
 
+  const blockedByTaskIds = [...new Set(input.blockedByTaskIds)].filter(
+    (id) => id && id !== taskId,
+  );
+  const blockerNote = input.blockerNote?.trim() || null;
+  const nextAction = input.nextAction?.trim() || null;
+
+  const blockerChanged = blockerFieldsChanged(previous, {
+    blockedByTaskIds,
+    blockerNote,
+    nextAction,
+  });
+
   const meaningfulMove =
     title !== previous.title ||
     input.status !== previous.status ||
-    input.assigneeId !== previous.assigneeId;
+    input.assigneeId !== previous.assigneeId ||
+    blockerChanged;
 
   await updateDoc(doc(getFirestoreDb(), "tasks", taskId), {
     projectId: input.projectId,
@@ -163,6 +181,9 @@ export async function updateTask(
     description: input.description.trim(),
     status: input.status,
     assigneeId: input.assigneeId,
+    blockedByTaskIds,
+    blockerNote,
+    nextAction,
     updatedAt: serverTimestamp(),
     ...(meaningfulMove ? { lastMovedAt: serverTimestamp() } : {}),
   });
@@ -200,6 +221,25 @@ export async function updateTask(
         title,
         assigneeName,
         outcomeTitle,
+      }),
+    });
+  }
+
+  if (
+    wasBlockerCleared(previous, {
+      blockedByTaskIds,
+      blockerNote,
+    })
+  ) {
+    await logActivity({
+      type: "blocker_cleared",
+      actorId,
+      projectId: input.projectId,
+      taskId,
+      outcomeId: input.outcomeId,
+      message: messageBlockerCleared({
+        title,
+        nextAction,
       }),
     });
   }

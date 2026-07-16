@@ -75,3 +75,14 @@ export function messageAssigned(opts: {
   }
   return msg;
 }
+
+export function messageBlockerCleared(opts: {
+  title: string;
+  nextAction: string | null;
+}): string {
+  const next = opts.nextAction?.trim();
+  if (next) {
+    return `Cleared blocker on “${opts.title}” — next: ${next}`;
+  }
+  return `Cleared blocker on “${opts.title}”`;
+}
