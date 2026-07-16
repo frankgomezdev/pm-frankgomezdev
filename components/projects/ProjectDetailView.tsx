@@ -192,8 +192,11 @@ export function ProjectDetailView() {
       <section className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-6">
         <h2 className="text-sm font-semibold text-zinc-900">Tasks</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Task list for this project lands in slice B3. Outcomes land in
-          Milestone C.
+          Create and edit tasks on{" "}
+          <Link href="/tasks" className="underline">
+            Tasks
+          </Link>
+          . A project-scoped list lands in slice B3.
         </p>
       </section>
     </div>
