@@ -17,8 +17,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // v1: one shared cohort workspace — any signed-in user may CRUD projects.
+    // v1: one shared cohort workspace — any signed-in user may CRUD.
     match /projects/{projectId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /tasks/{taskId} {
       allow read, create, update: if signedIn();
       allow delete: if false;
     }
