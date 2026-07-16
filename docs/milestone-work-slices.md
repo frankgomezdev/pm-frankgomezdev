@@ -1,11 +1,13 @@
 # Milestone work slices — Phase 1 Project 1
 
-Milestones (A–D) are the **acceptance gates**. Work slices are short-lived `feat/...` branches that PR into `dev` so integration stays runnable between gates.
+Milestones (A–D) are the **acceptance gates**. Work slices are ordered, mergeable cuts that land on **`dev`** (commit/push directly — no required `feat/...` branches after A2).
 
 - Branch / promote flow: [git-workflow.md](./git-workflow.md)
 - Product requirements & milestone “done when”: [phase-1-project-1-implementation-spec.md](../knowledge-base/phase-1-project-1-implementation-spec.md) (§8–§9)
 
 **Rules:** one milestone at a time; do not start C before B’s gate passes. Do not expand into §11 out-of-scope or gamification. When all slices for a milestone are on `dev` and that milestone’s “done when” passes → PR `dev` → `main` (see [Promotion](#promotion-dev--main)).
+
+Slice **Branch** names below are labels / history (A1–A2 used real feature branches). From B1 onward, implement on `dev` and reference the slice id in the commit message.
 
 ---
 
@@ -73,7 +75,8 @@ Promote at each milestone gate — not only at D — so Production stays a stabl
 ```powershell
 git checkout dev
 git pull origin dev
-git checkout -b feat/a2-auth-shell
+# implement the next slice on this branch, then:
+git push origin dev
 ```
 
-PR the branch into **`dev`**. Only promote `dev` → `main` when the current milestone gate passes.
+Only promote `dev` → `main` when the current milestone gate passes.
