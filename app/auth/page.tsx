@@ -2,6 +2,12 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AuthLayout } from "@/components/catalyst/auth-layout";
+import { Button } from "@/components/catalyst/button";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Heading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Strong, Text } from "@/components/catalyst/text";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 type Mode = "login" | "signup";
@@ -61,116 +67,114 @@ export default function AuthPage() {
     }
   }
 
+  function switchMode(next: Mode) {
+    setMode(next);
+    setFormError(null);
+  }
+
   if (loading || user) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-        {user ? "Redirecting…" : "Loading…"}
-      </div>
+      <AuthLayout>
+        <Text>{user ? "Redirecting…" : "Loading…"}</Text>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          Cohort PM
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
-          {mode === "signup" ? "Create an account" : "Sign in"}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Email and password via Firebase Auth.
-        </p>
-
-        <div className="mt-4 flex gap-2 text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setMode("signup");
-              setFormError(null);
-            }}
-            className={
-              mode === "signup"
-                ? "rounded-md bg-zinc-900 px-3 py-1.5 text-white"
-                : "rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100"
-            }
-          >
-            Sign up
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("login");
-              setFormError(null);
-            }}
-            className={
-              mode === "login"
-                ? "rounded-md bg-zinc-900 px-3 py-1.5 text-white"
-                : "rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100"
-            }
-          >
-            Sign in
-          </button>
+    <AuthLayout>
+      <form
+        onSubmit={onSubmit}
+        className="grid w-full max-w-sm grid-cols-1 gap-8"
+      >
+        <div>
+          <Text className="uppercase tracking-wide">Cohort PM</Text>
+          <Heading className="mt-1">
+            {mode === "signup" ? "Create an account" : "Sign in"}
+          </Heading>
+          <Text className="mt-2">Email and password via Firebase Auth.</Text>
         </div>
 
-        <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-3">
-          {mode === "signup" && (
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Display name</span>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                autoComplete="name"
-                className="rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-zinc-500"
-                placeholder="How teammates will see you"
-              />
-            </label>
-          )}
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Email</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              className="rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-zinc-500"
+        {mode === "signup" ? (
+          <Field>
+            <Label>Display name</Label>
+            <Input
+              name="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              autoComplete="name"
+              placeholder="How teammates will see you"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Password</span>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={
-                mode === "signup" ? "new-password" : "current-password"
-              }
-              className="rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-zinc-500"
-            />
-          </label>
+          </Field>
+        ) : null}
 
-          {formError && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-              {formError}
-            </p>
-          )}
+        <Field>
+          <Label>Email</Label>
+          <Input
+            type="email"
+            name="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+        </Field>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-1 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        <Field>
+          <Label>Password</Label>
+          <Input
+            type="password"
+            name="password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={
+              mode === "signup" ? "new-password" : "current-password"
+            }
+          />
+        </Field>
+
+        {formError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm/6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
           >
-            {submitting
-              ? "Working…"
-              : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
-          </button>
-        </form>
-      </div>
-    </div>
+            {formError}
+          </p>
+        ) : null}
+
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting
+            ? "Working…"
+            : mode === "signup"
+              ? "Create account"
+              : "Sign in"}
+        </Button>
+
+        {mode === "signup" ? (
+          <Text>
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className="inline font-medium text-zinc-950 underline decoration-zinc-950/50 hover:decoration-zinc-950 dark:text-white dark:decoration-white/50 dark:hover:decoration-white"
+            >
+              <Strong>Sign in</Strong>
+            </button>
+          </Text>
+        ) : (
+          <Text>
+            Don&apos;t have an account?{" "}
+            <button
+              type="button"
+              onClick={() => switchMode("signup")}
+              className="inline font-medium text-zinc-950 underline decoration-zinc-950/50 hover:decoration-zinc-950 dark:text-white dark:decoration-white/50 dark:hover:decoration-white"
+            >
+              <Strong>Sign up</Strong>
+            </button>
+          </Text>
+        )}
+      </form>
+    </AuthLayout>
   );
 }

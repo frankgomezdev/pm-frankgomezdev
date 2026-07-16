@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AuthLayout } from "@/components/catalyst/auth-layout";
+import { Button } from "@/components/catalyst/button";
+import { Heading } from "@/components/catalyst/heading";
+import { Code, Text } from "@/components/catalyst/text";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -16,40 +20,41 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-        Checking session…
-      </div>
+      <AuthLayout>
+        <Text>Checking session…</Text>
+      </AuthLayout>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-        Redirecting to sign in…
-      </div>
+      <AuthLayout>
+        <Text>Redirecting to sign in…</Text>
+      </AuthLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-3 px-6">
-        <h1 className="text-xl font-semibold text-zinc-900">Profile error</h1>
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-        <p className="text-sm text-zinc-600">
-          If this mentions permissions, create a Firestore database and deploy
-          the rules in <code className="font-mono text-xs">firestore.rules</code>
-          , or temporarily use test mode while developing.
-        </p>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="w-fit rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
-        >
-          Sign out
-        </button>
-      </div>
+      <AuthLayout>
+        <div className="grid w-full max-w-sm grid-cols-1 gap-6">
+          <Heading>Profile error</Heading>
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm/6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+          >
+            {error}
+          </p>
+          <Text>
+            If this mentions permissions, create a Firestore database and deploy
+            the rules in <Code>firestore.rules</Code>, or temporarily use test
+            mode while developing.
+          </Text>
+          <Button outline onClick={() => void signOut()}>
+            Sign out
+          </Button>
+        </div>
+      </AuthLayout>
     );
   }
 
