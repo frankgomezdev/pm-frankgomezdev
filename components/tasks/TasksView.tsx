@@ -1,14 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/catalyst/button";
+import { Divider } from "@/components/catalyst/divider";
+import { Field, Label } from "@/components/catalyst/fieldset";
+import { Heading, Subheading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Link } from "@/components/catalyst/link";
+import { Select } from "@/components/catalyst/select";
+import { Text, TextLink } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { ErrorBanner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { cardPaddingClassName } from "@/components/ui/cardStyles";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
@@ -190,7 +198,7 @@ export function TasksView() {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading tasks…</p>;
+    return <Text>Loading tasks…</Text>;
   }
 
   const filtersActive = Boolean(
@@ -200,149 +208,133 @@ export function TasksView() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
-        <p className="text-zinc-600">
+        <Heading>Tasks</Heading>
+        <Text className="mt-1">
           Create tasks and filter by project, status, or assignee.
-        </p>
+        </Text>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      <form
-        onSubmit={onCreate}
-        className={`flex flex-col gap-3 ${cardPaddingClassName}`}
-      >
-        <h2 className="text-sm font-semibold text-zinc-900">New task</h2>
+      <form onSubmit={onCreate} className="flex flex-col gap-4">
+        <Subheading level={2}>New task</Subheading>
 
         {activeProjects.length === 0 ? (
-          <p className="text-sm text-zinc-600">
+          <Text>
             Create an active project first on{" "}
-            <Link href="/projects" className="underline">
-              Projects
-            </Link>
-            .
-          </p>
+            <TextLink href="/projects">Projects</TextLink>.
+          </Text>
         ) : (
           <>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Project</span>
-              <select
+            <Field>
+              <Label>Project</Label>
+              <Select
                 required
                 value={projectId}
                 onChange={(e) => {
                   setProjectId(e.target.value);
                   setOutcomeId(null);
                 }}
-                className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
               >
                 {activeProjects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Title</span>
-              <input
+              </Select>
+            </Field>
+            <Field>
+              <Label>Title</Label>
+              <Input
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
                 placeholder="e.g. Wire Firebase auth"
               />
-            </label>
+            </Field>
             <GoalQualityNudge
               title={title}
               enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
               onApplyRewrite={setTitle}
               onApplySplit={(lines) =>
                 setDescription((prev) => {
-                  const block = ["Suggested smaller steps:", ...lines.map((l) => `• ${l}`)].join(
-                    "\n",
-                  );
+                  const block = [
+                    "Suggested smaller steps:",
+                    ...lines.map((l) => `• ${l}`),
+                  ].join("\n");
                   return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
                 })
               }
             />
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Description</span>
-              <textarea
+            <Field>
+              <Label>Description</Label>
+              <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700">Outcome</span>
+            </Field>
+            <Field>
+              <Label>Outcome</Label>
               <OutcomePicker
                 outcomes={createOutcomes}
                 value={outcomeId}
                 onChange={setOutcomeId}
                 disabled={busy}
               />
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-zinc-700">Status</span>
-                <select
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <Label>Status</Label>
+                <Select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                  className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
                 >
                   {TASK_STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>
                   ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-zinc-700">Assignee</span>
+                </Select>
+              </Field>
+              <Field>
+                <Label>Assignee</Label>
                 <AssigneePicker
                   users={users}
                   value={assigneeId}
                   onChange={setAssigneeId}
                   disabled={busy}
                 />
-              </label>
+              </Field>
             </div>
-            <button
+            <Button
               type="submit"
               disabled={busy || !projectId}
-              className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="w-fit"
             >
               {busy ? "Saving…" : "Create task"}
-            </button>
+            </Button>
           </>
         )}
       </form>
 
-      <section className={`flex flex-col gap-3 ${cardPaddingClassName}`}>
+      <Divider soft />
+
+      <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Filters</h2>
+          <Subheading level={2}>Filters</Subheading>
           {filtersActive && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-sm text-zinc-600 underline hover:text-zinc-900"
-            >
+            <Button type="button" plain onClick={clearFilters}>
               Clear filters
-            </button>
+            </Button>
           )}
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Project</span>
-            <select
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field>
+            <Label>Project</Label>
+            <Select
               value={filters.projectId}
               onChange={(e) => updateFilters({ projectId: e.target.value })}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             >
               <option value="">All projects</option>
               {projects.map((p) => (
@@ -351,14 +343,13 @@ export function TasksView() {
                   {p.status === "archived" ? " (archived)" : ""}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Status</span>
-            <select
+            </Select>
+          </Field>
+          <Field>
+            <Label>Status</Label>
+            <Select
               value={filters.status}
               onChange={(e) => updateFilters({ status: e.target.value })}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             >
               <option value="">All statuses</option>
               {TASK_STATUSES.map((s) => (
@@ -366,14 +357,13 @@ export function TasksView() {
                   {s.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Assignee</span>
-            <select
+            </Select>
+          </Field>
+          <Field>
+            <Label>Assignee</Label>
+            <Select
               value={filters.assigneeId}
               onChange={(e) => updateFilters({ assigneeId: e.target.value })}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             >
               <option value="">All assignees</option>
               <option value="unassigned">Unassigned</option>
@@ -382,15 +372,15 @@ export function TasksView() {
                   {u.displayName}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Field>
         </div>
-        <p className="text-xs text-zinc-500">
+        <Text className="text-xs/5">
           Showing {filteredTasks.length} of {tasks.length} tasks
-        </p>
+        </Text>
       </section>
 
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-6">
         {filteredTasks.length === 0 ? (
           <li>
             <EmptyState
@@ -407,7 +397,7 @@ export function TasksView() {
             />
           </li>
         ) : (
-          filteredTasks.map((task) => {
+          filteredTasks.map((task, index) => {
             const project = projectById.get(task.projectId);
             const assignee = task.assigneeId
               ? userById.get(task.assigneeId)
@@ -416,30 +406,28 @@ export function TasksView() {
               ? outcomeById.get(task.outcomeId)
               : null;
             return (
-              <li key={task.id} className={cardPaddingClassName}>
+              <li key={task.id} className="flex flex-col gap-6">
+                {index > 0 && <Divider soft />}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/tasks/${task.id}`}
-                        className="text-lg font-medium text-zinc-900 hover:underline"
+                        className="text-lg font-medium text-zinc-950 hover:underline dark:text-white"
                       >
                         {task.title}
                       </Link>
                       <StatusPill status={task.status} />
                     </div>
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <Text className="mt-1">
                       {project?.title ?? "Unknown project"} ·{" "}
                       {assignee ? assignee.displayName : "Unassigned"}
                       {outcome ? ` · ${outcome.title}` : " · No outcome"}
-                    </p>
+                    </Text>
                   </div>
-                  <Link
-                    href={`/tasks/${task.id}`}
-                    className="shrink-0 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
-                  >
+                  <Button href={`/tasks/${task.id}`} outline className="shrink-0">
                     Open
-                  </Link>
+                  </Button>
                 </div>
               </li>
             );
