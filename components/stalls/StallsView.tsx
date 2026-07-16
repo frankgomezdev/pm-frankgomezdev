@@ -8,6 +8,7 @@ import {
   type StallRadarData,
   type StallRadarItem,
 } from "@/lib/stalls/api";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TASK_STATUSES } from "@/lib/types/task";
 
 function StallCard({ item }: { item: StallRadarItem }) {
@@ -160,10 +161,12 @@ export function StallsView() {
       )}
 
       {!data || data.items.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-          Nothing stalled or blocked right now. Leave a task quiet or add a
-          blocker note on a task detail to see it here.
-        </p>
+        <EmptyState
+          title="Nothing stalled or blocked"
+          description="Leave a task quiet past your stall threshold, or add a blocker note on a task detail to see it here."
+          actionHref="/tasks"
+          actionLabel="Browse tasks"
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {data.items.map((item) => (

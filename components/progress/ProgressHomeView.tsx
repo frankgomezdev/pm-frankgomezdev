@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { activityCreatedAtMs, logActivity } from "@/lib/activity/api";
 import {
   loadProgressHome,
@@ -25,16 +26,25 @@ function formatWhen(event: ActivityEvent): string {
 
 function ActivityList({
   items,
-  empty,
+  emptyTitle,
+  emptyDescription,
+  emptyHref,
+  emptyAction,
 }: {
   items: ActivityEvent[];
-  empty: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  emptyHref?: string;
+  emptyAction?: string;
 }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-sm text-zinc-500">
-        {empty}
-      </p>
+      <EmptyState
+        title={emptyTitle}
+        description={emptyDescription}
+        actionHref={emptyHref}
+        actionLabel={emptyAction}
+      />
     );
   }
 
@@ -66,10 +76,12 @@ function ActivityList({
 function OutcomeStrip({ rows }: { rows: OutcomeProgress[] }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-sm text-zinc-500">
-        No open outcomes yet. Add outcomes on a project and link tasks to see
-        team progress here.
-      </p>
+      <EmptyState
+        title="No open outcomes yet"
+        description="Add outcomes on a project and link tasks so the team can see shared progress — coordination, not ranking."
+        actionHref="/projects"
+        actionLabel="Go to Projects"
+      />
     );
   }
 
@@ -256,7 +268,10 @@ export function ProgressHomeView() {
         <h2 className="text-sm font-semibold text-zinc-900">{feedLabel}</h2>
         <ActivityList
           items={feed}
-          empty="No moves yet. Create a task or change a status — it’ll show up here."
+          emptyTitle="No moves yet"
+          emptyDescription="Create a task or change a status — it’ll show up here as what you moved forward."
+          emptyHref="/tasks"
+          emptyAction="Go to Tasks"
         />
       </section>
 

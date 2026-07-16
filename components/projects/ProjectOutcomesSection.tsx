@@ -12,6 +12,7 @@ import {
   type Outcome,
   type OutcomeStatus,
 } from "@/lib/types/outcome";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Props = {
   projectId: string;
@@ -175,9 +176,10 @@ export function ProjectOutcomesSection({ projectId, projectActive }: Props) {
       {loading ? (
         <p className="text-sm text-zinc-500">Loading outcomes…</p>
       ) : outcomes.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-sm text-zinc-500">
-          No outcomes yet. Add one so tasks can link to meaningful work.
-        </p>
+        <EmptyState
+          title="No outcomes yet"
+          description="Add a meaningful goal above so tasks can link to real progress — not vanity metrics."
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {outcomes.map((outcome) =>

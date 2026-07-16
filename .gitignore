@@ -35,10 +35,14 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# local secrets / service accounts
+**/serviceAccount*.json
+**/firebase-adminsdk*.json
+*.pem
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-node_modules

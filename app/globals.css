@@ -16,4 +16,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+input,
+textarea,
+select,
+button {
+  max-width: 100%;
 }

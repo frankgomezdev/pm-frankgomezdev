@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { createTask, listTasks } from "@/lib/tasks/api";
@@ -379,10 +380,19 @@ export function TasksView() {
 
       <ul className="flex flex-col gap-3">
         {filteredTasks.length === 0 ? (
-          <li className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            {tasks.length === 0
-              ? "No tasks yet."
-              : "No tasks match these filters."}
+          <li>
+            <EmptyState
+              title={
+                tasks.length === 0 ? "No tasks yet" : "No matching tasks"
+              }
+              description={
+                tasks.length === 0
+                  ? "Create a task above, or open a project and add work there."
+                  : "Try clearing filters or choosing a different project/status/assignee."
+              }
+              actionHref={tasks.length === 0 ? "/projects" : undefined}
+              actionLabel={tasks.length === 0 ? "Go to Projects" : undefined}
+            />
           </li>
         ) : (
           filteredTasks.map((task) => {

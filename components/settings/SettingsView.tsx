@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { seedDemoWorkspace } from "@/lib/seed/demo";
 import {
   DEFAULT_USER_PREFERENCES,
   type UserPreferences,
@@ -16,6 +18,9 @@ export function SettingsView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [seedBusy, setSeedBusy] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState<string | null>(null);
 
   useEffect(() => {
     setPrefs(normalizePreferences(profile?.preferences));
@@ -171,6 +176,52 @@ export function SettingsView() {
           {busy ? "Saving…" : "Save preferences"}
         </button>
       </form>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-zinc-900">Demo seed</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Creates a sample project, two outcomes, three tasks (one blocked), and
+          a reflection activity for reviewers. Safe to run more than once.
+        </p>
+        {seedMessage && (
+          <p className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            {seedMessage}{" "}
+            <Link href="/projects" className="underline">
+              Open Projects
+            </Link>
+          </p>
+        )}
+        {seedError && (
+          <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            {seedError}
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={seedBusy || !user}
+          onClick={() => {
+            if (!user) return;
+            setSeedBusy(true);
+            setSeedError(null);
+            setSeedMessage(null);
+            void seedDemoWorkspace(user.uid, user.uid)
+              .then((result) => {
+                setSeedMessage(
+                  `Seeded demo project ${result.projectId.slice(0, 8)}… with ${result.taskIds.length} tasks.`,
+                );
+              })
+              .catch((err) => {
+                setSeedError(
+                  err instanceof Error ? err.message : "Seed failed.",
+                );
+              })
+              .finally(() => setSeedBusy(false));
+          }}
+          className="mt-3 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+        >
+          {seedBusy ? "Seeding…" : "Seed demo project"}
+        </button>
+      </div>
 
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <p className="text-sm text-zinc-600">
