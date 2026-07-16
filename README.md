@@ -26,7 +26,24 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) — you should be redirected to `/auth`.
+
+4. Create a **Firestore** database (Native mode) in the Firebase console.
+5. Deploy security rules from this repo (Console → Firestore → Rules, paste `firestore.rules`, Publish), **or** start in test mode briefly for local A2 only.
+
+### Auth smoke test
+
+1. Open `/auth`, sign up with email + password (+ display name).
+2. You land on gated **Progress** home with shell nav (Tasks, Projects, Stalls, Settings).
+3. Confirm a `users/{uid}` doc exists in Firestore.
+4. Sign out → visiting `/` or `/tasks` sends you back to `/auth`.
+
+### Staff review account
+
+Create via the signup UI (or Authentication → Add user):
+
+- Email: `staff-review@hult-cohort.test`
+- Password: choose one and share out-of-band with reviewers (do not commit passwords)
 
 ## Env vars
 

@@ -1,93 +1,79 @@
-﻿# Git workflow — feature -> dev -> main
+﻿# Git workflow — `dev` -> `main`
 
-This repo uses a three-branch promotion model.
+This repo uses a two-lane model for fast solo iteration.
 
 ```
-feat/{issue}-{short-desc}  ->  dev  ->  main
-         (PR)                  (PR)
+dev  ->  main
+      (PR when promoting)
 ```
 
 | Branch | Role | Deploys |
 |--------|------|---------|
 | `main` | Production | Vercel **Production** |
-| `dev` | Integration / staging | Vercel **Preview** (optional: Preview on every `dev` push) |
-| `feat/...` or `fix/...` | Short-lived work | PR previews only |
+| `dev` | Day-to-day work / staging | Vercel **Preview** (optional: Preview on every `dev` push) |
 
-Daily development happens on feature branches cut from `dev`. Nothing goes to `main` except a PR from `dev` when it is ready for production.
+Commit and push slices directly on **`dev`**. Nothing goes to `main` except a PR from `dev` when a milestone gate passes (or before sharing a Production URL).
 
----
-
-## Branch naming
-
-| Pattern | Use |
-|---------|-----|
-| `feat/{issue}-{short-desc}` | Features |
-| `fix/{issue}-{short-desc}` | Fixes |
-| `chore/{short-desc}` | Docs, tooling, non-product chores |
-
-Examples: `feat/12-task-filters`, `fix/34-auth-redirect`
-
-Commits: `type(scope): short description` (e.g. `feat(tasks): add assignee dropdown`).
+> Historical note: early slices (A1–A2) used short-lived `feat/...` → `dev` PRs. That lane is dropped; keep working on `dev`.
 
 ---
 
 ## Day-to-day flow
 
-### 1. Start from up-to-date `dev`
+### 1. Work on `dev`
 
-``powershell
+```powershell
 git checkout dev
 git pull origin dev
-git checkout -b feat/12-stall-radar
+# implement the next slice, commit, push
+git push origin dev
 ```
 
-### 2. Open a PR into `dev` (not `main`)
+Commits: `type(scope): short description` (e.g. `feat(tasks): add assignee dropdown`).
 
-- Base branch: **`dev`**
-- Merge when review/CI look good
-- Prefer squash merge to keep `dev` history readable
+Optional local branches are fine for experiments, but the integration target is **`dev`**, not a required `feat/...` PR.
 
-### 3. Promote `dev` -> `main` when ready to ship
+### 2. Promote `dev` -> `main` when ready to ship
 
-On GitHub: **New pull request** -> base `main` <- compare `dev`.
+On GitHub: **New pull request** → base `main` ← compare `dev`.
 
 - Title example: `Promote dev -> main (Milestone B)`
 - Merge with a normal merge or squash — pick one style and keep it consistent
 - After merge, sync local:
 
-``powershell
+```powershell
 git checkout dev
 git pull origin dev
 git checkout main
 git pull origin main
 ```
 
-Never push commits directly to `main` or `dev` if branch protection is on (recommended).
+Never push commits directly to **`main`** (branch protection stays on).
 
 ---
 
 ## Milestone guidance (this project)
 
-Work slices (feat branches per milestone): [milestone-work-slices.md](./milestone-work-slices.md).
+Work slices (ordered cuts on `dev`): [milestone-work-slices.md](./milestone-work-slices.md).
 
 | Milestone | Land on `dev` first | Promote to `main` when |
 |-----------|------------------------|-------------------------|
-| A — Scaffold & auth | Yes | Signup -> gated home works on Preview |
-| B — Layer 0 PM | Yes | <=5 min ballot demo works without Layer 1 |
+| A — Scaffold & auth | Yes | Signup → gated home works on Preview |
+| B — Layer 0 PM | Yes | ≤5 min ballot demo works without Layer 1 |
 | C — Layer 1 | Yes | Layer 1 acceptance checklist green on Preview |
 | D — Harden & submit | Yes | Production URL ready for cohort submission |
 
-For the tight project deadline, promote `dev` -> `main` at each milestone "done when," not only at the very end — staff/peers need a **stable Production URL**.
+Promote `dev` → `main` at each milestone “done when,” not only at the very end — staff/peers need a **stable Production URL**.
 
 ---
 
 ## Vercel mapping
 
 1. Production branch = **`main`**
-2. Preview deployments = PRs (and optionally every push to `dev`)
+2. Preview deployments = pushes/PRs on `dev` (and any leftover feature PRs)
 3. Submission PR Production URL = the **`main`** deployment
 
-In Vercel -> Project -> Settings -> Git: set Production Branch to `main`.
+In Vercel → Project → Settings → Git: set Production Branch to `main`.
 
 ---
 
@@ -97,7 +83,7 @@ Repo: https://github.com/frankgomezdev/pm-frankgomezdev
 
 ### Branch protection — `main`
 
-Settings -> Branches -> Add rule -> Branch name pattern: `main`
+Settings → Branches → Add rule → Branch name pattern: `main`
 
 - Require a pull request before merging
 - Require approvals (optional for solo; leave off or 0)
@@ -107,27 +93,21 @@ Default promotion into `main` should only be from **`dev`**.
 
 ### Branch protection — `dev`
 
-Same rule for `dev`:
-
-- Require a pull request before merging
-- Feature PRs target `dev` only
+**Off** for this project (solo + short deadline). Push slice work straight to `dev`.
 
 ### Default branch
 
-Keep **Default branch = `main`** (GitHub Settings -> General).
+Keep **Default branch = `main`** (GitHub Settings → General).
 
 ---
 
 ## Solo shortcuts (allowed)
 
-You are one developer with a short deadline. These keep the model honest without process theater:
+- Push directly to `dev`
+- Approve your own `dev` → `main` PRs
+- Promote at milestone boundaries / before any Production URL share
 
-- You may approve your own PRs
-- Feature -> `dev` can be fast (same day)
-- `dev` -> `main` at milestone boundaries / before any Production URL share
-- Still use PRs so history and Vercel Preview remain visible
-
-Do **not** collapse to pushing straight to `main` for features — that skips the staging lane.
+Do **not** push product work straight to `main` — that skips the staging lane.
 
 ---
 
@@ -135,7 +115,6 @@ Do **not** collapse to pushing straight to `main` for features — that skips th
 
 | Action | Command / UI |
 |--------|----------------|
-| New feature | `git checkout dev`; `git pull`; `git checkout -b feat/...` |
-| Ship feature | PR: `feat/...` -> `dev` |
-| Ship production | PR: `dev` -> `main` |
-| Hotfix on Production | Branch from `main` as `fix/...`, PR -> `main`, then merge or cherry-pick back into `dev` |
+| Next slice | Commit + push on `dev` |
+| Ship production | PR: `dev` → `main` |
+| Hotfix on Production | Branch from `main` as `fix/...`, PR → `main`, then merge or cherry-pick back into `dev` |
