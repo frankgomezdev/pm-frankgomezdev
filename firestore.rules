@@ -33,6 +33,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Append-only progress feed.
+    match /activity/{eventId} {
+      allow read, create: if signedIn();
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

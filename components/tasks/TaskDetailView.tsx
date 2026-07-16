@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
@@ -16,6 +17,7 @@ import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 export function TaskDetailView() {
   const params = useParams<{ id: string }>();
   const taskId = params.id;
+  const { user } = useAuth();
 
   const [task, setTask] = useState<Task | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -96,7 +98,7 @@ export function TaskDetailView() {
 
   async function onSave(event: FormEvent) {
     event.preventDefault();
-    if (!task) return;
+    if (!task || !user) return;
     setBusy(true);
     setError(null);
     setSavedFlash(false);
@@ -105,6 +107,7 @@ export function TaskDetailView() {
         taskId,
         { title, description, status, assigneeId, projectId, outcomeId },
         task,
+        user.uid,
       );
       await refresh();
       setSavedFlash(true);
