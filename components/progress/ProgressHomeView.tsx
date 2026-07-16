@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { activityCreatedAtMs } from "@/lib/activity/api";
+import { activityCreatedAtMs, logActivity } from "@/lib/activity/api";
 import {
   loadProgressHome,
   type OutcomeProgress,
@@ -109,11 +110,92 @@ function OutcomeStrip({ rows }: { rows: OutcomeProgress[] }) {
   );
 }
 
+function ReflectionPrompt({
+  onSaved,
+}: {
+  onSaved: () => void;
+}) {
+  const { user } = useAuth();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!user) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await logActivity({
+        type: "reflection",
+        actorId: user.uid,
+        projectId: "",
+        taskId: null,
+        outcomeId: null,
+        message: `Reflection: ${trimmed}`,
+      });
+      setText("");
+      onSaved();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save reflection.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+    >
+      <div>
+        <h2 className="text-sm font-semibold text-zinc-900">
+          End-of-day reflection
+        </h2>
+        <p className="text-sm text-zinc-500">
+          What moved forward, and who did it help? Informational only — not a
+          score.
+        </p>
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={3}
+        className="rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500"
+        placeholder="e.g. Unblocked Priya on login UI by finishing Auth."
+      />
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+          {error}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={busy || !text.trim()}
+        className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+      >
+        {busy ? "Saving…" : "Save reflection"}
+      </button>
+    </form>
+  );
+}
+
 export function ProgressHomeView() {
   const { user, profile } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<ProgressHomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile?.preferences.homeView === "tasks") {
+      router.replace("/tasks");
+    }
+  }, [profile?.preferences.homeView, router]);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -136,6 +218,12 @@ export function ProgressHomeView() {
     void refresh();
   }, [refresh]);
 
+  if (profile?.preferences.homeView === "tasks") {
+    return (
+      <p className="text-sm text-zinc-500">Opening your preferred Tasks view…</p>
+    );
+  }
+
   if (loading) {
     return <p className="text-sm text-zinc-500">Loading progress…</p>;
   }
@@ -156,15 +244,6 @@ export function ProgressHomeView() {
             ? `Hi ${profile.displayName} — here’s momentum on meaningful work.`
             : "Momentum on meaningful work — not a scoreboard."}
         </p>
-        {profile?.preferences.homeView === "tasks" && (
-          <p className="mt-2 text-sm text-zinc-500">
-            Your preference prefers the task list.{" "}
-            <Link href="/tasks" className="underline">
-              Go to Tasks
-            </Link>{" "}
-            (settings toggle lands in C4).
-          </p>
-        )}
       </div>
 
       {error && (
@@ -192,6 +271,10 @@ export function ProgressHomeView() {
         </div>
         <OutcomeStrip rows={data?.outcomeProgress ?? []} />
       </section>
+
+      {profile?.preferences.reflectionPromptEnabled && (
+        <ReflectionPrompt onSaved={() => void refresh()} />
+      )}
     </div>
   );
 }

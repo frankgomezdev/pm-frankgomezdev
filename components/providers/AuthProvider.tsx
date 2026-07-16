@@ -19,7 +19,11 @@ import {
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { ensureUserProfile } from "@/lib/auth/ensureUserProfile";
-import type { UserProfile } from "@/lib/types/user";
+import { saveUserPreferences } from "@/lib/users/api";
+import {
+  normalizePreferences,
+} from "@/lib/users/preferences";
+import type { UserPreferences, UserProfile } from "@/lib/types/user";
 
 type AuthContextValue = {
   user: User | null;
@@ -34,6 +38,7 @@ type AuthContextValue = {
     displayName: string,
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  updatePreferences: (prefs: UserPreferences) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -101,6 +106,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(getFirebaseAuth());
   }, []);
 
+  const updatePreferences = useCallback(
+    async (prefs: UserPreferences) => {
+      if (!user) throw new Error("Not signed in.");
+      const next = await saveUserPreferences(user.uid, prefs);
+      setProfile((prev) =>
+        prev
+          ? { ...prev, preferences: normalizePreferences(next) }
+          : prev,
+      );
+    },
+    [user],
+  );
+
   const value = useMemo(
     () => ({
       user,
@@ -111,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      updatePreferences,
     }),
     [
       user,
@@ -121,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      updatePreferences,
     ],
   );
 

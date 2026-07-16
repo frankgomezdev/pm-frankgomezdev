@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { listAllOutcomes } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { createTask, listTasks } from "@/lib/tasks/api";
@@ -23,7 +24,7 @@ type FilterState = {
 };
 
 export function TasksView() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -242,6 +243,19 @@ export function TasksView() {
                 placeholder="e.g. Wire Firebase auth"
               />
             </label>
+            <GoalQualityNudge
+              title={title}
+              enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
+              onApplyRewrite={setTitle}
+              onApplySplit={(lines) =>
+                setDescription((prev) => {
+                  const block = ["Suggested smaller steps:", ...lines.map((l) => `• ${l}`)].join(
+                    "\n",
+                  );
+                  return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+                })
+              }
+            />
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-zinc-700">Description</span>
               <textarea

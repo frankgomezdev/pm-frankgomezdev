@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { getTask, listTasks, updateTask } from "@/lib/tasks/api";
@@ -17,7 +18,7 @@ import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 export function TaskDetailView() {
   const params = useParams<{ id: string }>();
   const taskId = params.id;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [task, setTask] = useState<Task | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -205,6 +206,20 @@ export function TaskDetailView() {
             className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           />
         </label>
+        <GoalQualityNudge
+          title={title}
+          enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
+          onApplyRewrite={setTitle}
+          onApplySplit={(lines) =>
+            setDescription((prev) => {
+              const block = [
+                "Suggested smaller steps:",
+                ...lines.map((l) => `• ${l}`),
+              ].join("\n");
+              return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+            })
+          }
+        />
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-zinc-700">Description</span>
           <textarea

@@ -5,6 +5,7 @@ import {
   DEFAULT_USER_PREFERENCES,
   type UserProfile,
 } from "@/lib/types/user";
+import { normalizePreferences } from "@/lib/users/preferences";
 
 export async function ensureUserProfile(user: User): Promise<UserProfile> {
   const ref = doc(getFirestoreDb(), "users", user.uid);
@@ -18,6 +19,9 @@ export async function ensureUserProfile(user: User): Promise<UserProfile> {
 
   if (snap.exists()) {
     const existing = snap.data() as UserProfile;
+    const preferences = normalizePreferences(
+      existing.preferences ?? DEFAULT_USER_PREFERENCES,
+    );
     // Signup can create the doc before updateProfile finishes; sync name when Auth has it.
     if (
       user.displayName?.trim() &&
@@ -25,12 +29,16 @@ export async function ensureUserProfile(user: User): Promise<UserProfile> {
     ) {
       await setDoc(
         ref,
-        { displayName: user.displayName.trim() },
+        { displayName: user.displayName.trim(), preferences },
         { merge: true },
       );
-      return { ...existing, displayName: user.displayName.trim() };
+      return {
+        ...existing,
+        displayName: user.displayName.trim(),
+        preferences,
+      };
     }
-    return existing;
+    return { ...existing, preferences };
   }
 
   const profile: UserProfile = {
