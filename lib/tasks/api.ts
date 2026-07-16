@@ -10,6 +10,14 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import { logActivity } from "@/lib/activity/api";
+import {
+  messageAssigned,
+  messageStatusChanged,
+  messageTaskCreated,
+  resolveOutcomeTitle,
+  resolveUserLabel,
+} from "@/lib/activity/messages";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import type {
   Task,
@@ -111,6 +119,25 @@ export async function createTask(
     updatedAt: now,
     archived: false,
   });
+
+  const [outcomeTitle, assigneeName] = await Promise.all([
+    resolveOutcomeTitle(input.outcomeId),
+    resolveUserLabel(input.assigneeId),
+  ]);
+
+  await logActivity({
+    type: "task_created",
+    actorId: uid,
+    projectId: input.projectId,
+    taskId: ref.id,
+    outcomeId: input.outcomeId,
+    message: messageTaskCreated({
+      title,
+      outcomeTitle,
+      assigneeName,
+    }),
+  });
+
   return ref.id;
 }
 
@@ -118,6 +145,7 @@ export async function updateTask(
   taskId: string,
   input: TaskUpdateInput,
   previous: Task,
+  actorId: string,
 ): Promise<void> {
   const title = input.title.trim();
   if (!title) throw new Error("Task title is required.");
@@ -138,4 +166,41 @@ export async function updateTask(
     updatedAt: serverTimestamp(),
     ...(meaningfulMove ? { lastMovedAt: serverTimestamp() } : {}),
   });
+
+  const outcomeTitle = await resolveOutcomeTitle(input.outcomeId);
+
+  if (input.status !== previous.status) {
+    await logActivity({
+      type:
+        input.status === "done" && input.outcomeId
+          ? "outcome_progress"
+          : "status_changed",
+      actorId,
+      projectId: input.projectId,
+      taskId,
+      outcomeId: input.outcomeId,
+      message: messageStatusChanged({
+        title,
+        from: previous.status,
+        to: input.status,
+        outcomeTitle,
+      }),
+    });
+  }
+
+  if (input.assigneeId !== previous.assigneeId) {
+    const assigneeName = await resolveUserLabel(input.assigneeId);
+    await logActivity({
+      type: "assigned",
+      actorId,
+      projectId: input.projectId,
+      taskId,
+      outcomeId: input.outcomeId,
+      message: messageAssigned({
+        title,
+        assigneeName,
+        outcomeTitle,
+      }),
+    });
+  }
 }
