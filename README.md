@@ -29,7 +29,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) — you should be redirected to `/auth`.
 
 4. Create a **Firestore** database (Native mode) in the Firebase console.
-5. Deploy security rules from this repo (Console → Firestore → Rules, paste `firestore.rules`, Publish), **or** start in test mode briefly for local A2 only.
+5. Deploy security rules from this repo (Console → Firestore → Rules, paste `firestore.rules`, Publish), **or** start in test mode briefly for local A2 only. Re-publish whenever `firestore.rules` changes (e.g. after projects/tasks slices).
 
 ### Auth smoke test
 
