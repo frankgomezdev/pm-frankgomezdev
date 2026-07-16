@@ -15,9 +15,14 @@ import type { Outcome } from "@/lib/types/outcome";
 import type { Project } from "@/lib/types/project";
 import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 
+function readOutcomeIdFromForm(form: HTMLFormElement): string | null {
+  const raw = new FormData(form).get("outcomeId");
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
 export function TaskDetailView() {
   const params = useParams<{ id: string }>();
-  const taskId = params.id;
+  const taskId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user, profile } = useAuth();
 
   const [task, setTask] = useState<Task | null>(null);
@@ -118,9 +123,14 @@ export function TaskDetailView() {
     );
   }
 
-  async function onSave(event: FormEvent) {
+  async function onSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!task || !user) return;
+    // Prefer the live <select> value so a controlled/optgroup mismatch cannot
+    // silently save null while the UI looked selected.
+    const submittedOutcomeId =
+      readOutcomeIdFromForm(event.currentTarget) ?? outcomeId;
+    setOutcomeId(submittedOutcomeId);
     setBusy(true);
     setError(null);
     setSavedFlash(false);
@@ -133,7 +143,7 @@ export function TaskDetailView() {
           status,
           assigneeId,
           projectId,
-          outcomeId,
+          outcomeId: submittedOutcomeId,
           blockedByTaskIds,
           blockerNote: blockerNote.trim() || null,
           nextAction: nextAction.trim() || null,

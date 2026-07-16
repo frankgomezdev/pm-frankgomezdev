@@ -31,15 +31,21 @@ import type {
   TaskUpdateInput,
 } from "@/lib/types/task";
 
+function normalizeNullableId(value: unknown): string | null {
+  if (value == null) return null;
+  const id = String(value).trim();
+  return id.length > 0 ? id : null;
+}
+
 function mapTask(id: string, data: Record<string, unknown>): Task {
   return {
     id,
     projectId: String(data.projectId ?? ""),
-    outcomeId: (data.outcomeId as string | null) ?? null,
+    outcomeId: normalizeNullableId(data.outcomeId),
     title: String(data.title ?? ""),
     description: String(data.description ?? ""),
     status: (data.status as TaskStatus) ?? "todo",
-    assigneeId: (data.assigneeId as string | null) ?? null,
+    assigneeId: normalizeNullableId(data.assigneeId),
     blockedByTaskIds: Array.isArray(data.blockedByTaskIds)
       ? (data.blockedByTaskIds as string[])
       : [],
@@ -107,14 +113,17 @@ export async function createTask(
   if (!title) throw new Error("Task title is required.");
   if (!input.projectId) throw new Error("Choose a project.");
 
+  const outcomeId = normalizeNullableId(input.outcomeId);
+  const assigneeId = normalizeNullableId(input.assigneeId);
+
   const now = serverTimestamp();
   const ref = await addDoc(collection(getFirestoreDb(), "tasks"), {
     projectId: input.projectId,
-    outcomeId: input.outcomeId,
+    outcomeId,
     title,
     description: input.description.trim(),
     status: input.status,
-    assigneeId: input.assigneeId,
+    assigneeId,
     blockedByTaskIds: [],
     blockerNote: null,
     nextAction: null,
@@ -126,8 +135,8 @@ export async function createTask(
   });
 
   const [outcomeTitle, assigneeName] = await Promise.all([
-    resolveOutcomeTitle(input.outcomeId),
-    resolveUserLabel(input.assigneeId),
+    resolveOutcomeTitle(outcomeId),
+    resolveUserLabel(assigneeId),
   ]);
 
   await logActivity({
@@ -135,7 +144,7 @@ export async function createTask(
     actorId: uid,
     projectId: input.projectId,
     taskId: ref.id,
-    outcomeId: input.outcomeId,
+    outcomeId,
     message: messageTaskCreated({
       title,
       outcomeTitle,
@@ -156,6 +165,8 @@ export async function updateTask(
   if (!title) throw new Error("Task title is required.");
   if (!input.projectId) throw new Error("Choose a project.");
 
+  const outcomeId = normalizeNullableId(input.outcomeId);
+  const assigneeId = normalizeNullableId(input.assigneeId);
   const blockedByTaskIds = [...new Set(input.blockedByTaskIds)].filter(
     (id) => id && id !== taskId,
   );
@@ -168,19 +179,22 @@ export async function updateTask(
     nextAction,
   });
 
+  const outcomeChanged = outcomeId !== previous.outcomeId;
+
   const meaningfulMove =
     title !== previous.title ||
     input.status !== previous.status ||
-    input.assigneeId !== previous.assigneeId ||
+    assigneeId !== previous.assigneeId ||
+    outcomeChanged ||
     blockerChanged;
 
   await updateDoc(doc(getFirestoreDb(), "tasks", taskId), {
     projectId: input.projectId,
-    outcomeId: input.outcomeId,
+    outcomeId,
     title,
     description: input.description.trim(),
     status: input.status,
-    assigneeId: input.assigneeId,
+    assigneeId,
     blockedByTaskIds,
     blockerNote,
     nextAction,
@@ -188,18 +202,18 @@ export async function updateTask(
     ...(meaningfulMove ? { lastMovedAt: serverTimestamp() } : {}),
   });
 
-  const outcomeTitle = await resolveOutcomeTitle(input.outcomeId);
+  const outcomeTitle = await resolveOutcomeTitle(outcomeId);
 
   if (input.status !== previous.status) {
     await logActivity({
       type:
-        input.status === "done" && input.outcomeId
+        input.status === "done" && outcomeId
           ? "outcome_progress"
           : "status_changed",
       actorId,
       projectId: input.projectId,
       taskId,
-      outcomeId: input.outcomeId,
+      outcomeId,
       message: messageStatusChanged({
         title,
         from: previous.status,
@@ -209,14 +223,14 @@ export async function updateTask(
     });
   }
 
-  if (input.assigneeId !== previous.assigneeId) {
-    const assigneeName = await resolveUserLabel(input.assigneeId);
+  if (assigneeId !== previous.assigneeId) {
+    const assigneeName = await resolveUserLabel(assigneeId);
     await logActivity({
       type: "assigned",
       actorId,
       projectId: input.projectId,
       taskId,
-      outcomeId: input.outcomeId,
+      outcomeId,
       message: messageAssigned({
         title,
         assigneeName,
@@ -236,7 +250,7 @@ export async function updateTask(
       actorId,
       projectId: input.projectId,
       taskId,
-      outcomeId: input.outcomeId,
+      outcomeId,
       message: messageBlockerCleared({
         title,
         nextAction,

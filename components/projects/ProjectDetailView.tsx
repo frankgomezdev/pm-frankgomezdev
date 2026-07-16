@@ -8,21 +8,37 @@ import {
   setProjectStatus,
   updateProject,
 } from "@/lib/projects/api";
+import { listOutcomesByProject } from "@/lib/outcomes/api";
+import type { Outcome } from "@/lib/types/outcome";
 import type { Project } from "@/lib/types/project";
 import { ProjectOutcomesSection } from "@/components/projects/ProjectOutcomesSection";
 import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
 
 export function ProjectDetailView() {
   const params = useParams<{ id: string }>();
-  const projectId = params.id;
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [project, setProject] = useState<Project | null>(null);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [outcomesLoading, setOutcomesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const refreshOutcomes = useCallback(async () => {
+    setOutcomesLoading(true);
+    try {
+      const rows = await listOutcomesByProject(projectId);
+      setOutcomes(rows);
+    } catch {
+      setOutcomes([]);
+    } finally {
+      setOutcomesLoading(false);
+    }
+  }, [projectId]);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -43,6 +59,10 @@ export function ProjectDetailView() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    void refreshOutcomes();
+  }, [refreshOutcomes]);
 
   async function onSave(event: FormEvent) {
     event.preventDefault();
@@ -194,11 +214,15 @@ export function ProjectDetailView() {
       <ProjectOutcomesSection
         projectId={project.id}
         projectActive={project.status === "active"}
+        outcomes={outcomes}
+        loading={outcomesLoading}
+        onOutcomesChanged={refreshOutcomes}
       />
 
       <ProjectTasksSection
         projectId={project.id}
         projectActive={project.status === "active"}
+        outcomes={outcomes}
       />
     </div>
   );

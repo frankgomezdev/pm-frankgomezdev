@@ -26,6 +26,10 @@ service cloud.firestore {
       return status in ['open', 'done'];
     }
 
+    function validNullableId(value) {
+      return value == null || isNonEmptyString(value);
+    }
+
     function validActivityType(type) {
       return type in [
         'task_created',
@@ -127,18 +131,22 @@ service cloud.firestore {
           'lastMovedAt', 'createdBy', 'createdAt', 'updatedAt', 'archived'
         ])
         && isNonEmptyString(request.resource.data.projectId)
+        && validNullableId(request.resource.data.outcomeId)
         && isNonEmptyString(request.resource.data.title)
         && request.resource.data.description is string
         && validTaskStatus(request.resource.data.status)
+        && validNullableId(request.resource.data.assigneeId)
         && request.resource.data.blockedByTaskIds is list
         && request.resource.data.archived is bool
         && request.resource.data.createdBy == request.auth.uid;
 
       allow update: if signedIn()
         && isNonEmptyString(request.resource.data.projectId)
+        && validNullableId(request.resource.data.outcomeId)
         && isNonEmptyString(request.resource.data.title)
         && request.resource.data.description is string
         && validTaskStatus(request.resource.data.status)
+        && validNullableId(request.resource.data.assigneeId)
         && request.resource.data.blockedByTaskIds is list
         && request.resource.data.archived is bool
         && request.resource.data.createdBy == resource.data.createdBy;

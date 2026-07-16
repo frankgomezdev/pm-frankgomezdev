@@ -154,14 +154,24 @@ export function TasksView() {
     void refresh();
   }, [refresh]);
 
-  async function onCreate(event: FormEvent) {
+  async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user) return;
+    const raw = new FormData(event.currentTarget).get("outcomeId");
+    const submittedOutcomeId =
+      typeof raw === "string" && raw.trim() ? raw.trim() : null;
     setBusy(true);
     setError(null);
     try {
       await createTask(
-        { projectId, title, description, status, assigneeId, outcomeId },
+        {
+          projectId,
+          title,
+          description,
+          status,
+          assigneeId,
+          outcomeId: submittedOutcomeId ?? outcomeId,
+        },
         user.uid,
       );
       setTitle("");
