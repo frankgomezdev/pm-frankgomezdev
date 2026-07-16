@@ -1,5 +1,7 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
+import { normalizePreferences } from "@/lib/users/preferences";
+import type { UserPreferences } from "@/lib/types/user";
 
 export type CohortUser = {
   uid: string;
@@ -28,4 +30,15 @@ export function formatUserLabel(user: CohortUser): string {
     return `${user.displayName} (${user.email})`;
   }
   return user.displayName || user.email || user.uid;
+}
+
+export async function saveUserPreferences(
+  uid: string,
+  preferences: UserPreferences,
+): Promise<UserPreferences> {
+  const next = normalizePreferences(preferences);
+  await updateDoc(doc(getFirestoreDb(), "users", uid), {
+    preferences: next,
+  });
+  return next;
 }

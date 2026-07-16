@@ -34,6 +34,9 @@ export type TaskUpdateInput = {
   assigneeId: string | null;
   projectId: string;
   outcomeId: string | null;
+  blockedByTaskIds: string[];
+  blockerNote: string | null;
+  nextAction: string | null;
 };
 
 export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [

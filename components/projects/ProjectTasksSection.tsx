@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { createTask, listTasksByProject } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
@@ -17,7 +18,7 @@ type Props = {
 };
 
 export function ProjectTasksSection({ projectId, projectActive }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
@@ -137,6 +138,20 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
               className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             />
           </label>
+          <GoalQualityNudge
+            title={title}
+            enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
+            onApplyRewrite={setTitle}
+            onApplySplit={(lines) =>
+              setDescription((prev) => {
+                const block = [
+                  "Suggested smaller steps:",
+                  ...lines.map((l) => `• ${l}`),
+                ].join("\n");
+                return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+              })
+            }
+          />
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-700">Description</span>
             <textarea

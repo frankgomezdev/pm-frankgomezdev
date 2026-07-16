@@ -6,9 +6,10 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
+import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
-import { getTask, updateTask } from "@/lib/tasks/api";
+import { getTask, listTasks, updateTask } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
 import type { Outcome } from "@/lib/types/outcome";
 import type { Project } from "@/lib/types/project";
@@ -17,12 +18,13 @@ import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 export function TaskDetailView() {
   const params = useParams<{ id: string }>();
   const taskId = params.id;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [task, setTask] = useState<Task | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,6 +36,9 @@ export function TaskDetailView() {
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState("");
   const [outcomeId, setOutcomeId] = useState<string | null>(null);
+  const [blockedByTaskIds, setBlockedByTaskIds] = useState<string[]>([]);
+  const [blockerNote, setBlockerNote] = useState("");
+  const [nextAction, setNextAction] = useState("");
 
   const projectOptions = useMemo(() => {
     if (!task) return projects.filter((p) => p.status === "active");
@@ -45,17 +50,25 @@ export function TaskDetailView() {
     return active;
   }, [projects, task]);
 
+  const dependencyCandidates = useMemo(() => {
+    return allTasks.filter(
+      (t) => t.id !== taskId && t.projectId === projectId && t.status !== "done",
+    );
+  }, [allTasks, taskId, projectId]);
+
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [row, projectRows, userRows] = await Promise.all([
+      const [row, projectRows, userRows, taskRows] = await Promise.all([
         getTask(taskId),
         listProjects(),
         listCohortUsers(),
+        listTasks(),
       ]);
       setTask(row);
       setProjects(projectRows);
       setUsers(userRows);
+      setAllTasks(taskRows);
       if (row) {
         setTitle(row.title);
         setDescription(row.description);
@@ -63,6 +76,9 @@ export function TaskDetailView() {
         setAssigneeId(row.assigneeId);
         setProjectId(row.projectId);
         setOutcomeId(row.outcomeId);
+        setBlockedByTaskIds(row.blockedByTaskIds);
+        setBlockerNote(row.blockerNote ?? "");
+        setNextAction(row.nextAction ?? "");
         const outcomeRows = await listOutcomesByProject(row.projectId);
         setOutcomes(outcomeRows);
       }
@@ -96,6 +112,12 @@ export function TaskDetailView() {
     };
   }, [projectId]);
 
+  function toggleBlockedBy(id: string) {
+    setBlockedByTaskIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   async function onSave(event: FormEvent) {
     event.preventDefault();
     if (!task || !user) return;
@@ -105,7 +127,17 @@ export function TaskDetailView() {
     try {
       await updateTask(
         taskId,
-        { title, description, status, assigneeId, projectId, outcomeId },
+        {
+          title,
+          description,
+          status,
+          assigneeId,
+          projectId,
+          outcomeId,
+          blockedByTaskIds,
+          blockerNote: blockerNote.trim() || null,
+          nextAction: nextAction.trim() || null,
+        },
         task,
         user.uid,
       );
@@ -144,8 +176,9 @@ export function TaskDetailView() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit task</h1>
         <p className="text-sm text-zinc-500">
-          Status, assignee, and title changes bump <code>lastMovedAt</code>.
-          Link an outcome so work maps to a meaningful goal.
+          Status, assignee, title, and blocker changes bump{" "}
+          <code>lastMovedAt</code>. Link an outcome so work maps to a meaningful
+          goal.
         </p>
       </div>
 
@@ -173,6 +206,20 @@ export function TaskDetailView() {
             className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           />
         </label>
+        <GoalQualityNudge
+          title={title}
+          enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
+          onApplyRewrite={setTitle}
+          onApplySplit={(lines) =>
+            setDescription((prev) => {
+              const block = [
+                "Suggested smaller steps:",
+                ...lines.map((l) => `• ${l}`),
+              ].join("\n");
+              return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+            })
+          }
+        />
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-zinc-700">Description</span>
           <textarea
@@ -190,6 +237,7 @@ export function TaskDetailView() {
             onChange={(e) => {
               setProjectId(e.target.value);
               setOutcomeId(null);
+              setBlockedByTaskIds([]);
             }}
             className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           >
@@ -235,10 +283,64 @@ export function TaskDetailView() {
             />
           </label>
         </div>
+
+        <fieldset className="mt-2 flex flex-col gap-3 border-t border-zinc-100 pt-4">
+          <legend className="text-sm font-semibold text-zinc-900">
+            Blockers & next action
+          </legend>
+          <p className="text-xs text-zinc-500">
+            Capture why work is stuck and the smallest step to unblock. Cleared
+            blockers show on Progress.
+          </p>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Why stuck</span>
+            <textarea
+              value={blockerNote}
+              onChange={(e) => setBlockerNote(e.target.value)}
+              rows={2}
+              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+              placeholder="Waiting on API access / design decision / …"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-700">Next action</span>
+            <input
+              value={nextAction}
+              onChange={(e) => setNextAction(e.target.value)}
+              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+              placeholder="Smallest unblocking step"
+            />
+          </label>
+          <div className="flex flex-col gap-2 text-sm">
+            <span className="text-zinc-700">Blocked by (same project)</span>
+            {dependencyCandidates.length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                No other open tasks in this project to depend on.
+              </p>
+            ) : (
+              <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-zinc-200 p-2">
+                {dependencyCandidates.map((candidate) => (
+                  <li key={candidate.id}>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={blockedByTaskIds.includes(candidate.id)}
+                        onChange={() => toggleBlockedBy(candidate.id)}
+                        disabled={busy}
+                      />
+                      <span>{candidate.title}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </fieldset>
+
         <button
           type="submit"
           disabled={busy}
-          className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="mt-1 w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
         >
           {busy ? "Saving…" : "Save changes"}
         </button>
