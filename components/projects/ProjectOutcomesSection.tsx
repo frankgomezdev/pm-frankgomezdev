@@ -1,12 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import {
-  createOutcome,
-  listOutcomesByProject,
-  updateOutcome,
-} from "@/lib/outcomes/api";
+import { createOutcome, updateOutcome } from "@/lib/outcomes/api";
 import {
   OUTCOME_STATUSES,
   type Outcome,
@@ -17,12 +13,19 @@ import { EmptyState } from "@/components/ui/EmptyState";
 type Props = {
   projectId: string;
   projectActive: boolean;
+  outcomes: Outcome[];
+  loading: boolean;
+  onOutcomesChanged: () => Promise<void>;
 };
 
-export function ProjectOutcomesSection({ projectId, projectActive }: Props) {
+export function ProjectOutcomesSection({
+  projectId,
+  projectActive,
+  outcomes,
+  loading,
+  onOutcomesChanged,
+}: Props) {
   const { user } = useAuth();
-  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -34,26 +37,6 @@ export function ProjectOutcomesSection({ projectId, projectActive }: Props) {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<OutcomeStatus>("open");
-
-  const refresh = useCallback(async () => {
-    setError(null);
-    try {
-      const rows = await listOutcomesByProject(projectId);
-      setOutcomes(rows);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load outcomes. Check Firestore rules.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -69,7 +52,7 @@ export function ProjectOutcomesSection({ projectId, projectActive }: Props) {
       setTitle("");
       setDescription("");
       setStatus("open");
-      await refresh();
+      await onOutcomesChanged();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not create outcome.",
@@ -98,7 +81,7 @@ export function ProjectOutcomesSection({ projectId, projectActive }: Props) {
         status: editStatus,
       });
       setEditingId(null);
-      await refresh();
+      await onOutcomesChanged();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not update outcome.",

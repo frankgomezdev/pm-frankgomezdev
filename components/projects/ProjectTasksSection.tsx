@@ -7,7 +7,6 @@ import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { createTask, listTasksByProject } from "@/lib/tasks/api";
 import { listCohortUsers, type CohortUser } from "@/lib/users/api";
 import type { Outcome } from "@/lib/types/outcome";
@@ -16,13 +15,22 @@ import { TASK_STATUSES, type Task, type TaskStatus } from "@/lib/types/task";
 type Props = {
   projectId: string;
   projectActive: boolean;
+  outcomes: Outcome[];
 };
 
-export function ProjectTasksSection({ projectId, projectActive }: Props) {
+function readOutcomeIdFromForm(form: HTMLFormElement): string | null {
+  const raw = new FormData(form).get("outcomeId");
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
+export function ProjectTasksSection({
+  projectId,
+  projectActive,
+  outcomes,
+}: Props) {
   const { user, profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<CohortUser[]>([]);
-  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,14 +56,12 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [taskRows, userRows, outcomeRows] = await Promise.all([
+      const [taskRows, userRows] = await Promise.all([
         listTasksByProject(projectId),
         listCohortUsers(),
-        listOutcomesByProject(projectId),
       ]);
       setTasks(taskRows);
       setUsers(userRows);
-      setOutcomes(outcomeRows);
     } catch (err) {
       setError(
         err instanceof Error
@@ -71,9 +77,10 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
     void refresh();
   }, [refresh]);
 
-  async function onCreate(event: FormEvent) {
+  async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user) return;
+    const submittedOutcomeId = readOutcomeIdFromForm(event.currentTarget);
     setBusy(true);
     setError(null);
     try {
@@ -84,7 +91,7 @@ export function ProjectTasksSection({ projectId, projectActive }: Props) {
           description,
           status,
           assigneeId,
-          outcomeId,
+          outcomeId: submittedOutcomeId ?? outcomeId,
         },
         user.uid,
       );
