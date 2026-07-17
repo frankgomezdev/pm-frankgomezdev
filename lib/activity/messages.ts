@@ -61,13 +61,14 @@ export function messageStatusChanged(opts: {
 }): string {
   if (opts.to === "done") {
     const names = (opts.unblockedNames ?? []).filter(Boolean);
+    const parts = [`Finished “${opts.title}”.`];
     if (opts.outcomeTitle) {
-      return `Finished “${opts.title}”. ${opts.outcomeTitle} is one step closer.`;
+      parts.push(`${opts.outcomeTitle} is one step closer.`);
     }
     if (names.length > 0) {
-      return `Unblocked ${formatNameList(names)} by finishing “${opts.title}”.`;
+      parts.push(`Unblocked ${formatNameList(names)}.`);
     }
-    return `Finished “${opts.title}”.`;
+    return parts.join(" ");
   }
 
   let msg = `Moved “${opts.title}” from ${statusLabel(opts.from)} to ${statusLabel(opts.to)}.`;
@@ -95,17 +96,8 @@ export function messageAssigned(opts: {
 export function messageBlockerCleared(opts: {
   title: string;
   nextAction: string | null;
-  unblockedNames?: string[];
 }): string {
-  const names = (opts.unblockedNames ?? []).filter(Boolean);
   const next = opts.nextAction?.trim();
-
-  if (names.length > 0) {
-    let msg = `Unblocked ${formatNameList(names)} by clearing the blocker on “${opts.title}”.`;
-    if (next) msg += ` Next: ${next}.`;
-    return msg;
-  }
-
   if (next) {
     return `Cleared the blocker on “${opts.title}”. Next: ${next}.`;
   }

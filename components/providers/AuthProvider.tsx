@@ -18,8 +18,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { getFirebaseAuth, getFirestoreDb } from "@/lib/firebase/client";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { ensureUserProfile } from "@/lib/auth/ensureUserProfile";
 import { saveUserPreferences } from "@/lib/users/api";
 import {
@@ -99,14 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (name) {
         await updateProfile(cred.user, { displayName: name });
         await reload(cred.user);
-        // onAuthStateChanged may have already created the profile with the
-        // email prefix before updateProfile finished — write the real name.
-        await setDoc(
-          doc(getFirestoreDb(), "users", cred.user.uid),
-          { displayName: name },
-          { merge: true },
-        );
       }
+      // After reload, Auth has the name. ensureUserProfile syncs an existing
+      // email-prefix doc or creates a full valid profile (rules-safe).
       const nextProfile = await ensureUserProfile(cred.user);
       setUser(cred.user);
       setProfile(nextProfile);

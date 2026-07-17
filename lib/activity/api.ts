@@ -52,12 +52,9 @@ export function setActivityOnWrite(
   event: ActivityWrite,
 ): void {
   const ref = doc(collection(getFirestoreDb(), "activity"));
-  const payload = activityPayload(event);
-  if ("commit" in writer) {
-    writer.set(ref, payload);
-  } else {
-    writer.set(ref, payload);
-  }
+  // WriteBatch.set / Transaction.set share a compatible runtime shape; the
+  // TypeScript overload union is not callable without a narrow cast.
+  (writer as WriteBatch).set(ref, activityPayload(event));
 }
 
 export async function listRecentActivity(

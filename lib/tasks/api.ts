@@ -161,7 +161,6 @@ function buildUpdateActivityEvents(args: {
       message: messageBlockerCleared({
         title,
         nextAction,
-        unblockedNames,
       }),
     });
   }
