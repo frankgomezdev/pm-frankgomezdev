@@ -92,7 +92,6 @@ export default function AuthPage() {
           <Heading className="mt-1">
             {mode === "signup" ? "Create an account" : "Sign in"}
           </Heading>
-          <Text className="mt-2">Email and password via Firebase Auth.</Text>
         </div>
 
         {mode === "signup" ? (
