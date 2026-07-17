@@ -194,7 +194,9 @@ export function SettingsView() {
             void seedDemoWorkspace(user.uid, user.uid)
               .then((result) => {
                 setSeedMessage(
-                  `Seeded demo project ${result.projectId.slice(0, 8)}… with ${result.taskIds.length} tasks.`,
+                  result.alreadyExisted
+                    ? `Demo project already exists (${result.projectId.slice(0, 8)}…). Open Projects to use it, or archive it first to re-seed.`
+                    : `Seeded demo project ${result.projectId.slice(0, 8)}… with ${result.taskIds.length} tasks.`,
                 );
               })
               .catch((err) => {

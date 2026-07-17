@@ -1,11 +1,14 @@
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   limit,
   orderBy,
   query,
   serverTimestamp,
+  type Transaction,
+  type WriteBatch,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import type {
@@ -27,8 +30,8 @@ function mapActivity(id: string, data: Record<string, unknown>): ActivityEvent {
   };
 }
 
-export async function logActivity(event: ActivityWrite): Promise<void> {
-  await addDoc(collection(getFirestoreDb(), "activity"), {
+function activityPayload(event: ActivityWrite) {
+  return {
     type: event.type,
     actorId: event.actorId,
     projectId: event.projectId,
@@ -36,7 +39,25 @@ export async function logActivity(event: ActivityWrite): Promise<void> {
     outcomeId: event.outcomeId,
     message: event.message,
     createdAt: serverTimestamp(),
-  });
+  };
+}
+
+export async function logActivity(event: ActivityWrite): Promise<void> {
+  await addDoc(collection(getFirestoreDb(), "activity"), activityPayload(event));
+}
+
+/** Queue an activity doc onto a batch or transaction write. */
+export function setActivityOnWrite(
+  writer: WriteBatch | Transaction,
+  event: ActivityWrite,
+): void {
+  const ref = doc(collection(getFirestoreDb(), "activity"));
+  const payload = activityPayload(event);
+  if ("commit" in writer) {
+    writer.set(ref, payload);
+  } else {
+    writer.set(ref, payload);
+  }
 }
 
 export async function listRecentActivity(
