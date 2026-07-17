@@ -292,7 +292,9 @@ export async function updateTask(
   const [outcomeTitle, assigneeName, unblockedNames] = await Promise.all([
     resolveOutcomeTitle(outcomeId),
     resolveUserLabel(assigneeId),
-    resolveUnblockedNames(taskId, input.projectId),
+    input.status === "done"
+      ? resolveUnblockedNames(taskId, input.projectId)
+      : Promise.resolve<string[]>([]),
   ]);
 
   const db = getFirestoreDb();
