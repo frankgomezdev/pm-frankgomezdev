@@ -106,8 +106,7 @@ export function ProjectOutcomesSection({
       <div>
         <Subheading level={2}>Outcomes</Subheading>
         <Text className="mt-1">
-          Meaningful goals tasks contribute to (e.g. “Ship Project 2 comms”) —
-          not vanity metrics.
+          Meaningful goals tasks contribute to (e.g. “Ship Project 2 comms”).
         </Text>
       </div>
 
@@ -162,7 +161,7 @@ export function ProjectOutcomesSection({
       ) : outcomes.length === 0 ? (
         <EmptyState
           title="No outcomes yet"
-          description="Add a meaningful goal above so tasks can link to real progress — not vanity metrics."
+          description="Add a meaningful goal above so tasks can link to shared progress."
         />
       ) : (
         <ul className="flex flex-col gap-3">

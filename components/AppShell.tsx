@@ -44,7 +44,7 @@ const NAV = [
   { href: "/", label: "Progress", icon: ChartBarSquareIcon },
   { href: "/tasks", label: "Tasks", icon: ClipboardDocumentListIcon },
   { href: "/projects", label: "Projects", icon: FolderIcon },
-  { href: "/stalls", label: "Stalls", icon: ExclamationTriangleIcon },
+  { href: "/stalls", label: "Needs attention", icon: ExclamationTriangleIcon },
   { href: "/settings", label: "Settings", icon: Cog6ToothIcon },
 ] as const;
 

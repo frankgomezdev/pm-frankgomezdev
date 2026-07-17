@@ -51,7 +51,7 @@ export function GoalQualityNudge({
       {onApplySplit && analysis.splitSuggestions.length > 0 && (
         <div className="mt-2 flex flex-col gap-2">
           <Text className="text-xs/5 text-amber-900 dark:text-amber-300">
-            Optional split into smaller steps (informational — not points):
+            Optional split into smaller steps:
           </Text>
           <ul className="list-inside list-decimal text-xs/5 text-amber-900 dark:text-amber-300">
             {analysis.splitSuggestions.map((line) => (

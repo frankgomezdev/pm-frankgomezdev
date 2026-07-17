@@ -92,6 +92,7 @@ function buildUpdateActivityEvents(args: {
   nextAction: string | null;
   outcomeTitle: string | null;
   assigneeName: string | null;
+  unblockedNames: string[];
 }): ActivityWrite[] {
   const {
     taskId,
@@ -107,6 +108,7 @@ function buildUpdateActivityEvents(args: {
     nextAction,
     outcomeTitle,
     assigneeName,
+    unblockedNames,
   } = args;
 
   const events: ActivityWrite[] = [];
@@ -124,6 +126,7 @@ function buildUpdateActivityEvents(args: {
         from: previous.status,
         to: status,
         outcomeTitle,
+        unblockedNames,
       }),
     });
   }
@@ -158,11 +161,26 @@ function buildUpdateActivityEvents(args: {
       message: messageBlockerCleared({
         title,
         nextAction,
+        unblockedNames,
       }),
     });
   }
 
   return events;
+}
+
+async function resolveUnblockedNames(
+  taskId: string,
+  projectId: string,
+): Promise<string[]> {
+  const siblings = await listTasksByProject(projectId);
+  const dependents = siblings.filter(
+    (t) => t.id !== taskId && t.blockedByTaskIds.includes(taskId),
+  );
+  const labels = await Promise.all(
+    dependents.map((t) => resolveUserLabel(t.assigneeId)),
+  );
+  return [...new Set(labels.filter((n): n is string => Boolean(n)))];
 }
 
 export async function listTasks(): Promise<Task[]> {
@@ -272,9 +290,10 @@ export async function updateTask(
   const blockerNote = input.blockerNote?.trim() || null;
   const nextAction = input.nextAction?.trim() || null;
 
-  const [outcomeTitle, assigneeName] = await Promise.all([
+  const [outcomeTitle, assigneeName, unblockedNames] = await Promise.all([
     resolveOutcomeTitle(outcomeId),
     resolveUserLabel(assigneeId),
+    resolveUnblockedNames(taskId, input.projectId),
   ]);
 
   const db = getFirestoreDb();
@@ -328,6 +347,7 @@ export async function updateTask(
       nextAction,
       outcomeTitle,
       assigneeName,
+      unblockedNames,
     });
 
     for (const event of events) {

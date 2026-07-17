@@ -64,7 +64,7 @@ export function SettingsView() {
       <div>
         <Heading>Settings</Heading>
         <Text className="mt-1">
-          Autonomy controls — no XP, points, or leaderboards.
+          How Progress and Tasks support your work.
         </Text>
       </div>
 
@@ -116,13 +116,12 @@ export function SettingsView() {
           />
           <Label>End-of-day reflection</Label>
           <Description>
-            Show a short reflection prompt on Progress (writes an activity note
-            — not a score).
+            Show a short reflection prompt on Progress.
           </Description>
         </CheckboxField>
 
         <Field>
-          <Label>Stall threshold (days)</Label>
+          <Label>Quiet threshold (days)</Label>
           <Input
             type="number"
             min={1}
@@ -137,28 +136,7 @@ export function SettingsView() {
             className="w-28"
           />
           <Description>
-            Used by Stalls for “quiet” tasks with no movement.
-          </Description>
-        </Field>
-
-        <Field>
-          <Label>Reminder cadence (UI only)</Label>
-          <Select
-            value={prefs.reminderCadence}
-            onChange={(e) =>
-              setPrefs((p) => ({
-                ...p,
-                reminderCadence: e.target
-                  .value as UserPreferences["reminderCadence"],
-              }))
-            }
-          >
-            <option value="off">Off</option>
-            <option value="daily">Daily (preference stored only)</option>
-            <option value="weekly">Weekly (preference stored only)</option>
-          </Select>
-          <Description>
-            Stored for later — no emails/notifications in v1.
+            Used under Needs attention for tasks with no recent movement.
           </Description>
         </Field>
 
@@ -173,7 +151,8 @@ export function SettingsView() {
         <Subheading level={2}>Demo seed</Subheading>
         <Text>
           Creates a sample project, two outcomes, three tasks (one blocked), and
-          a reflection activity for reviewers. Safe to run more than once.
+          a reflection activity for reviewers. Skips if the demo project already
+          exists.
         </Text>
         {seedMessage && (
           <SuccessBanner>

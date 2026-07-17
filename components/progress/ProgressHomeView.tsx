@@ -126,7 +126,7 @@ function OutcomeStrip({ rows }: { rows: OutcomeProgress[] }) {
     return (
       <EmptyState
         title="No open outcomes yet"
-        description="Add outcomes on a project and link tasks so the team can see shared progress — coordination, not ranking."
+        description="Add outcomes on a project and link tasks so the team can see shared progress."
         actionHref="/projects"
         actionLabel="Go to Projects"
       />
@@ -155,9 +155,6 @@ function OutcomeStrip({ rows }: { rows: OutcomeProgress[] }) {
               </span>
             </div>
             <ProgressBar percent={pct} />
-            <Text className="mt-1.5 text-xs/5">
-              Coordination view — not a ranking.
-            </Text>
           </li>
         );
       })}
@@ -203,8 +200,7 @@ function ReflectionPrompt({ onSaved }: { onSaved: () => void }) {
       <div>
         <Subheading level={2}>End-of-day reflection</Subheading>
         <Text className="mt-0.5">
-          What moved forward, and who did it help? Informational only — not a
-          score.
+          What moved forward, and who did it help?
         </Text>
       </div>
       <Field>
@@ -296,8 +292,8 @@ export function ProgressHomeView() {
         <Heading>Progress</Heading>
         <Text className="mt-1">
           {profile?.displayName
-            ? `Hi ${profile.displayName} — here’s momentum on meaningful work.`
-            : "Momentum on meaningful work — not a scoreboard."}
+            ? `Hi ${profile.displayName}. Here’s momentum on meaningful work.`
+            : "Momentum on meaningful work."}
         </Text>
       </div>
 
@@ -322,7 +318,7 @@ export function ProgressHomeView() {
             <ActivityList
               items={feed}
               emptyTitle="No moves yet"
-              emptyDescription="Create a task or change a status — it’ll show up here as what you moved forward."
+              emptyDescription="Create a task or change a status. It’ll show up here as what you moved forward."
               emptyHref="/tasks"
               emptyAction="Go to Tasks"
             />

@@ -50,7 +50,7 @@ export function OutcomePicker({
       </Select>
       {encourageLink && !value && (
         <p className="text-xs/5 text-amber-700 dark:text-amber-500">
-          Link a meaningful outcome so progress is visible later — not required,
+          Link a meaningful outcome so progress is visible later. Not required,
           but strongly encouraged.
         </p>
       )}

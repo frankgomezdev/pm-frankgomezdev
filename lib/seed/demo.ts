@@ -10,7 +10,8 @@ import { createOutcome } from "@/lib/outcomes/api";
 import { listProjects, createProject } from "@/lib/projects/api";
 import { createTask } from "@/lib/tasks/api";
 
-export const DEMO_PROJECT_TITLE = "Demo — Review week";
+export const DEMO_PROJECT_TITLE = "Demo: Review week";
+const DEMO_TITLE_ALIASES = [DEMO_PROJECT_TITLE, "Demo — Review week"] as const;
 
 export type SeedDemoResult = {
   projectId: string;
@@ -29,7 +30,10 @@ export async function seedDemoWorkspace(
   assigneeId: string | null = uid,
 ): Promise<SeedDemoResult> {
   const existing = (await listProjects()).find(
-    (p) => p.title === DEMO_PROJECT_TITLE && p.status === "active",
+    (p) =>
+      DEMO_TITLE_ALIASES.includes(
+        p.title as (typeof DEMO_TITLE_ALIASES)[number],
+      ) && p.status === "active",
   );
   if (existing) {
     return {
@@ -64,7 +68,7 @@ export async function seedDemoWorkspace(
     projectId,
     {
       title: "Clear blockers for teammates",
-      description: "Coordination outcome — who unblocks whom.",
+      description: "Coordination outcome: who unblocks whom.",
       status: "open",
     },
     uid,
@@ -128,7 +132,7 @@ export async function seedDemoWorkspace(
     taskId: null,
     outcomeId: outcomeShip,
     message:
-      "Reflection: Seeded demo data so reviewers can see Progress, Stalls, and outcomes quickly.",
+      "Reflection: Seeded demo data so reviewers can see Progress, Needs attention, and outcomes quickly.",
     createdAt: serverTimestamp(),
   });
 

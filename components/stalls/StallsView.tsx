@@ -130,16 +130,16 @@ export function StallsView() {
   }, [refresh]);
 
   if (loading) {
-    return <Text>Loading stalls…</Text>;
+    return <Text>Loading…</Text>;
   }
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <Heading>Stalls</Heading>
+        <Heading>Needs attention</Heading>
         <Text className="mt-1">
-          Quiet tasks (no movement for {threshold}+ days) and blocked work —
-          with who/what unblocks whom.
+          Quiet tasks (no movement for {threshold}+ days) and blocked work, with
+          who unblocks whom.
         </Text>
       </div>
 
@@ -147,8 +147,8 @@ export function StallsView() {
 
       {!data || data.items.length === 0 ? (
         <EmptyState
-          title="Nothing stalled or blocked"
-          description="Leave a task quiet past your stall threshold, or add a blocker note on a task detail to see it here."
+          title="Nothing needs attention"
+          description="Leave a task quiet past your threshold, or add a blocker note on a task detail to see it here."
           actionHref="/tasks"
           actionLabel="Browse tasks"
         />

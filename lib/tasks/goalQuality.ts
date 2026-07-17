@@ -61,7 +61,7 @@ export function analyzeGoalTitle(title: string): GoalQualityAnalysis {
   for (const pattern of ALWAYS_VAGUE_PATTERNS) {
     if (pattern.test(trimmed)) {
       reasons.push(
-        "Title uses a vague pattern (e.g. work on / misc / stuff) — name the outcome or who is helped.",
+        "Title uses a vague pattern (e.g. work on / misc / stuff). Name the outcome or who is helped.",
       );
       break;
     }
@@ -74,7 +74,7 @@ export function analyzeGoalTitle(title: string): GoalQualityAnalysis {
       !weakVerbWithObject
     ) {
       reasons.push(
-        "Title uses fix/update without a clear object — name what changes and who is unblocked.",
+        "Title uses fix/update without a clear object. Name what changes and who is unblocked.",
       );
       break;
     }
@@ -102,7 +102,7 @@ export function analyzeGoalTitle(title: string): GoalQualityAnalysis {
   } else if (/\bwork on\b/i.test(base)) {
     rewriteSuggestion = `Ship a concrete step for ${base.replace(/\bwork on\b/i, "").trim() || "this work"} that unblocks the next person`;
   } else if (words < 4) {
-    rewriteSuggestion = `${base} — clarify who is helped and what “done” looks like`;
+    rewriteSuggestion = `${base}: clarify who is helped and what “done” looks like`;
   } else {
     rewriteSuggestion = `${base} toward a named outcome (who/what advances)`;
   }
