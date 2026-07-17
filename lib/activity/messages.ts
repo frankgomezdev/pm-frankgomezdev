@@ -30,6 +30,13 @@ function statusLabel(status: TaskStatus): string {
   return TASK_STATUSES.find((s) => s.value === status)?.label ?? status;
 }
 
+function formatNameList(names: string[]): string {
+  if (names.length === 0) return "a teammate";
+  if (names.length === 1) return names[0]!;
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
 export function messageTaskCreated(opts: {
   title: string;
   outcomeTitle: string | null;
@@ -42,7 +49,7 @@ export function messageTaskCreated(opts: {
   if (opts.assigneeName) {
     parts.push(`assigned to ${opts.assigneeName}`);
   }
-  return parts.length === 1 ? parts[0] : `${parts[0]} — ${parts.slice(1).join("; ")}`;
+  return parts.length === 1 ? parts[0]! : `${parts[0]}: ${parts.slice(1).join("; ")}`;
 }
 
 export function messageStatusChanged(opts: {
@@ -50,12 +57,23 @@ export function messageStatusChanged(opts: {
   from: TaskStatus;
   to: TaskStatus;
   outcomeTitle: string | null;
+  unblockedNames?: string[];
 }): string {
-  let msg = `Moved “${opts.title}” from ${statusLabel(opts.from)} to ${statusLabel(opts.to)}`;
-  if (opts.to === "done" && opts.outcomeTitle) {
-    msg += ` — toward ${opts.outcomeTitle}`;
-  } else if (opts.outcomeTitle) {
-    msg += ` (${opts.outcomeTitle})`;
+  if (opts.to === "done") {
+    const names = (opts.unblockedNames ?? []).filter(Boolean);
+    const parts = [`Finished “${opts.title}”.`];
+    if (opts.outcomeTitle) {
+      parts.push(`${opts.outcomeTitle} is one step closer.`);
+    }
+    if (names.length > 0) {
+      parts.push(`Unblocked ${formatNameList(names)}.`);
+    }
+    return parts.join(" ");
+  }
+
+  let msg = `Moved “${opts.title}” from ${statusLabel(opts.from)} to ${statusLabel(opts.to)}.`;
+  if (opts.outcomeTitle) {
+    msg += ` Toward ${opts.outcomeTitle}.`;
   }
   return msg;
 }
@@ -65,13 +83,12 @@ export function messageAssigned(opts: {
   assigneeName: string | null;
   outcomeTitle: string | null;
 }): string {
-  const who = opts.assigneeName ?? "Unassigned";
   let msg =
     opts.assigneeName == null
-      ? `Cleared assignee on “${opts.title}”`
-      : `Assigned “${opts.title}” to ${who}`;
+      ? `Cleared assignee on “${opts.title}”.`
+      : `Assigned “${opts.title}” to ${opts.assigneeName}.`;
   if (opts.outcomeTitle) {
-    msg += ` — ${opts.outcomeTitle}`;
+    msg += ` Toward ${opts.outcomeTitle}.`;
   }
   return msg;
 }
@@ -82,7 +99,7 @@ export function messageBlockerCleared(opts: {
 }): string {
   const next = opts.nextAction?.trim();
   if (next) {
-    return `Cleared blocker on “${opts.title}” — next: ${next}`;
+    return `Cleared the blocker on “${opts.title}”. Next: ${next}.`;
   }
-  return `Cleared blocker on “${opts.title}”`;
+  return `Cleared the blocker on “${opts.title}”.`;
 }

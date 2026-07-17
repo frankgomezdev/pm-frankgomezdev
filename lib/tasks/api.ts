@@ -1,16 +1,16 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
-  updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
-import { logActivity } from "@/lib/activity/api";
+import { setActivityOnWrite } from "@/lib/activity/api";
 import {
   messageAssigned,
   messageBlockerCleared,
@@ -30,6 +30,7 @@ import type {
   TaskStatus,
   TaskUpdateInput,
 } from "@/lib/types/task";
+import type { ActivityWrite } from "@/lib/types/activity";
 
 function normalizeNullableId(value: unknown): string | null {
   if (value == null) return null;
@@ -77,6 +78,110 @@ function sortByUpdatedAtDesc(tasks: Task[]): Task[] {
   });
 }
 
+function buildUpdateActivityEvents(args: {
+  taskId: string;
+  actorId: string;
+  previous: Task;
+  title: string;
+  projectId: string;
+  status: TaskStatus;
+  assigneeId: string | null;
+  outcomeId: string | null;
+  blockedByTaskIds: string[];
+  blockerNote: string | null;
+  nextAction: string | null;
+  outcomeTitle: string | null;
+  assigneeName: string | null;
+  unblockedNames: string[];
+}): ActivityWrite[] {
+  const {
+    taskId,
+    actorId,
+    previous,
+    title,
+    projectId,
+    status,
+    assigneeId,
+    outcomeId,
+    blockedByTaskIds,
+    blockerNote,
+    nextAction,
+    outcomeTitle,
+    assigneeName,
+    unblockedNames,
+  } = args;
+
+  const events: ActivityWrite[] = [];
+
+  if (status !== previous.status) {
+    events.push({
+      type:
+        status === "done" && outcomeId ? "outcome_progress" : "status_changed",
+      actorId,
+      projectId,
+      taskId,
+      outcomeId,
+      message: messageStatusChanged({
+        title,
+        from: previous.status,
+        to: status,
+        outcomeTitle,
+        unblockedNames,
+      }),
+    });
+  }
+
+  if (assigneeId !== previous.assigneeId) {
+    events.push({
+      type: "assigned",
+      actorId,
+      projectId,
+      taskId,
+      outcomeId,
+      message: messageAssigned({
+        title,
+        assigneeName,
+        outcomeTitle,
+      }),
+    });
+  }
+
+  if (
+    wasBlockerCleared(previous, {
+      blockedByTaskIds,
+      blockerNote,
+    })
+  ) {
+    events.push({
+      type: "blocker_cleared",
+      actorId,
+      projectId,
+      taskId,
+      outcomeId,
+      message: messageBlockerCleared({
+        title,
+        nextAction,
+      }),
+    });
+  }
+
+  return events;
+}
+
+async function resolveUnblockedNames(
+  taskId: string,
+  projectId: string,
+): Promise<string[]> {
+  const siblings = await listTasksByProject(projectId);
+  const dependents = siblings.filter(
+    (t) => t.id !== taskId && t.blockedByTaskIds.includes(taskId),
+  );
+  const labels = await Promise.all(
+    dependents.map((t) => resolveUserLabel(t.assigneeId)),
+  );
+  return [...new Set(labels.filter((n): n is string => Boolean(n)))];
+}
+
 export async function listTasks(): Promise<Task[]> {
   const q = query(
     collection(getFirestoreDb(), "tasks"),
@@ -116,8 +221,17 @@ export async function createTask(
   const outcomeId = normalizeNullableId(input.outcomeId);
   const assigneeId = normalizeNullableId(input.assigneeId);
 
+  const [outcomeTitle, assigneeName] = await Promise.all([
+    resolveOutcomeTitle(outcomeId),
+    resolveUserLabel(assigneeId),
+  ]);
+
+  const db = getFirestoreDb();
+  const batch = writeBatch(db);
+  const taskRef = doc(collection(db, "tasks"));
   const now = serverTimestamp();
-  const ref = await addDoc(collection(getFirestoreDb(), "tasks"), {
+
+  batch.set(taskRef, {
     projectId: input.projectId,
     outcomeId,
     title,
@@ -134,16 +248,11 @@ export async function createTask(
     archived: false,
   });
 
-  const [outcomeTitle, assigneeName] = await Promise.all([
-    resolveOutcomeTitle(outcomeId),
-    resolveUserLabel(assigneeId),
-  ]);
-
-  await logActivity({
+  setActivityOnWrite(batch, {
     type: "task_created",
     actorId: uid,
     projectId: input.projectId,
-    taskId: ref.id,
+    taskId: taskRef.id,
     outcomeId,
     message: messageTaskCreated({
       title,
@@ -152,13 +261,20 @@ export async function createTask(
     }),
   });
 
-  return ref.id;
+  await batch.commit();
+  return taskRef.id;
 }
 
+/**
+ * Updates a task and its activity events atomically.
+ * Diffs against the server copy inside a transaction (not the client's
+ * last-loaded snapshot) so concurrent editors don't double-log events.
+ * The `previous` argument is retained for callers but ignored for diffs.
+ */
 export async function updateTask(
   taskId: string,
   input: TaskUpdateInput,
-  previous: Task,
+  _previous: Task,
   actorId: string,
 ): Promise<void> {
   const title = input.title.trim();
@@ -173,88 +289,70 @@ export async function updateTask(
   const blockerNote = input.blockerNote?.trim() || null;
   const nextAction = input.nextAction?.trim() || null;
 
-  const blockerChanged = blockerFieldsChanged(previous, {
-    blockedByTaskIds,
-    blockerNote,
-    nextAction,
-  });
+  const [outcomeTitle, assigneeName, unblockedNames] = await Promise.all([
+    resolveOutcomeTitle(outcomeId),
+    resolveUserLabel(assigneeId),
+    input.status === "done"
+      ? resolveUnblockedNames(taskId, input.projectId)
+      : Promise.resolve<string[]>([]),
+  ]);
 
-  const outcomeChanged = outcomeId !== previous.outcomeId;
+  const db = getFirestoreDb();
+  const taskRef = doc(db, "tasks", taskId);
 
-  const meaningfulMove =
-    title !== previous.title ||
-    input.status !== previous.status ||
-    assigneeId !== previous.assigneeId ||
-    outcomeChanged ||
-    blockerChanged;
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(taskRef);
+    if (!snap.exists()) {
+      throw new Error("Task not found.");
+    }
+    const previous = mapTask(snap.id, snap.data());
 
-  await updateDoc(doc(getFirestoreDb(), "tasks", taskId), {
-    projectId: input.projectId,
-    outcomeId,
-    title,
-    description: input.description.trim(),
-    status: input.status,
-    assigneeId,
-    blockedByTaskIds,
-    blockerNote,
-    nextAction,
-    updatedAt: serverTimestamp(),
-    ...(meaningfulMove ? { lastMovedAt: serverTimestamp() } : {}),
-  });
-
-  const outcomeTitle = await resolveOutcomeTitle(outcomeId);
-
-  if (input.status !== previous.status) {
-    await logActivity({
-      type:
-        input.status === "done" && outcomeId
-          ? "outcome_progress"
-          : "status_changed",
-      actorId,
-      projectId: input.projectId,
-      taskId,
-      outcomeId,
-      message: messageStatusChanged({
-        title,
-        from: previous.status,
-        to: input.status,
-        outcomeTitle,
-      }),
-    });
-  }
-
-  if (assigneeId !== previous.assigneeId) {
-    const assigneeName = await resolveUserLabel(assigneeId);
-    await logActivity({
-      type: "assigned",
-      actorId,
-      projectId: input.projectId,
-      taskId,
-      outcomeId,
-      message: messageAssigned({
-        title,
-        assigneeName,
-        outcomeTitle,
-      }),
-    });
-  }
-
-  if (
-    wasBlockerCleared(previous, {
+    const outcomeChanged = outcomeId !== previous.outcomeId;
+    const blockerChanged = blockerFieldsChanged(previous, {
       blockedByTaskIds,
       blockerNote,
-    })
-  ) {
-    await logActivity({
-      type: "blocker_cleared",
-      actorId,
-      projectId: input.projectId,
-      taskId,
-      outcomeId,
-      message: messageBlockerCleared({
-        title,
-        nextAction,
-      }),
+      nextAction,
     });
-  }
+    const meaningfulMove =
+      title !== previous.title ||
+      input.status !== previous.status ||
+      assigneeId !== previous.assigneeId ||
+      outcomeChanged ||
+      blockerChanged;
+
+    tx.update(taskRef, {
+      projectId: input.projectId,
+      outcomeId,
+      title,
+      description: input.description.trim(),
+      status: input.status,
+      assigneeId,
+      blockedByTaskIds,
+      blockerNote,
+      nextAction,
+      updatedAt: serverTimestamp(),
+      ...(meaningfulMove ? { lastMovedAt: serverTimestamp() } : {}),
+    });
+
+    const events = buildUpdateActivityEvents({
+      taskId,
+      actorId,
+      previous,
+      title,
+      projectId: input.projectId,
+      status: input.status,
+      assigneeId,
+      outcomeId,
+      blockedByTaskIds,
+      blockerNote,
+      nextAction,
+      outcomeTitle,
+      assigneeName,
+      unblockedNames,
+    });
+
+    for (const event of events) {
+      setActivityOnWrite(tx, event);
+    }
+  });
 }

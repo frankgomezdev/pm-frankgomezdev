@@ -20,6 +20,14 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  // Catalyst ships `let` bindings and raw <img> avatars; keep kit style intact.
+  {
+    files: ["components/catalyst/**/*.{ts,tsx}"],
+    rules: {
+      "prefer-const": "off",
+      "@next/next/no-img-element": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

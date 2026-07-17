@@ -14,6 +14,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  reload,
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
@@ -96,7 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const name = displayName.trim();
       if (name) {
         await updateProfile(cred.user, { displayName: name });
+        await reload(cred.user);
       }
+      // After reload, Auth has the name. ensureUserProfile syncs an existing
+      // email-prefix doc or creates a full valid profile (rules-safe).
+      const nextProfile = await ensureUserProfile(cred.user);
+      setUser(cred.user);
+      setProfile(nextProfile);
     },
     [],
   );

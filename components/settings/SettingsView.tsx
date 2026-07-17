@@ -1,8 +1,23 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
+import { Button } from "@/components/catalyst/button";
+import {
+  Checkbox,
+  CheckboxField,
+} from "@/components/catalyst/checkbox";
+import { Divider } from "@/components/catalyst/divider";
+import {
+  Description,
+  Field,
+  Label,
+} from "@/components/catalyst/fieldset";
+import { Heading, Subheading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Select } from "@/components/catalyst/select";
+import { Text, TextLink } from "@/components/catalyst/text";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner, SuccessBanner } from "@/components/ui/Banner";
 import { seedDemoWorkspace } from "@/lib/seed/demo";
 import {
   DEFAULT_USER_PREFERENCES,
@@ -45,32 +60,23 @@ export function SettingsView() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-zinc-600">
-          Autonomy controls — no XP, points, or leaderboards.
-        </p>
+        <Heading>Settings</Heading>
+        <Text className="mt-1">
+          How Progress and Tasks support your work.
+        </Text>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
       {saved && !error && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          Preferences saved.
-        </p>
+        <SuccessBanner>Preferences saved.</SuccessBanner>
       )}
 
-      <form
-        onSubmit={onSave}
-        className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4"
-      >
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Default home view</span>
-          <select
+      <form onSubmit={onSave} className="flex flex-col gap-6">
+        <Field>
+          <Label>Default home view</Label>
+          <Select
             value={prefs.homeView}
             onChange={(e) =>
               setPrefs((p) => ({
@@ -78,57 +84,45 @@ export function SettingsView() {
                 homeView: e.target.value as UserPreferences["homeView"],
               }))
             }
-            className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           >
             <option value="progress">Progress (recommended)</option>
             <option value="tasks">Tasks list</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
 
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1"
+        <CheckboxField>
+          <Checkbox
             checked={prefs.nudgeGoalQuality}
-            onChange={(e) =>
-              setPrefs((p) => ({ ...p, nudgeGoalQuality: e.target.checked }))
+            onChange={(checked) =>
+              setPrefs((p) => ({ ...p, nudgeGoalQuality: checked }))
             }
           />
-          <span>
-            <span className="font-medium text-zinc-800">Goal-quality nudge</span>
-            <span className="block text-zinc-500">
-              Suggest clearer titles and optional split ideas when a task title
-              looks vague.
-            </span>
-          </span>
-        </label>
+          <Label>Goal-quality nudge</Label>
+          <Description>
+            Suggest clearer titles and optional split ideas when a task title
+            looks vague.
+          </Description>
+        </CheckboxField>
 
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1"
+        <CheckboxField>
+          <Checkbox
             checked={prefs.reflectionPromptEnabled}
-            onChange={(e) =>
+            onChange={(checked) =>
               setPrefs((p) => ({
                 ...p,
-                reflectionPromptEnabled: e.target.checked,
+                reflectionPromptEnabled: checked,
               }))
             }
           />
-          <span>
-            <span className="font-medium text-zinc-800">
-              End-of-day reflection
-            </span>
-            <span className="block text-zinc-500">
-              Show a short reflection prompt on Progress (writes an activity
-              note — not a score).
-            </span>
-          </span>
-        </label>
+          <Label>End-of-day reflection</Label>
+          <Description>
+            Show a short reflection prompt on Progress.
+          </Description>
+        </CheckboxField>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Stall threshold (days)</span>
-          <input
+        <Field>
+          <Label>Quiet threshold (days)</Label>
+          <Input
             type="number"
             min={1}
             max={30}
@@ -139,65 +133,37 @@ export function SettingsView() {
                 stallDaysThreshold: Number(e.target.value) || 3,
               }))
             }
-            className="w-28 rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
+            className="w-28"
           />
-          <span className="text-xs text-zinc-500">
-            Used by Stalls for “quiet” tasks with no movement.
-          </span>
-        </label>
+          <Description>
+            Used under Needs attention for tasks with no recent movement.
+          </Description>
+        </Field>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Reminder cadence (UI only)</span>
-          <select
-            value={prefs.reminderCadence}
-            onChange={(e) =>
-              setPrefs((p) => ({
-                ...p,
-                reminderCadence: e.target
-                  .value as UserPreferences["reminderCadence"],
-              }))
-            }
-            className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-          >
-            <option value="off">Off</option>
-            <option value="daily">Daily (preference stored only)</option>
-            <option value="weekly">Weekly (preference stored only)</option>
-          </select>
-          <span className="text-xs text-zinc-500">
-            Stored for later — no emails/notifications in v1.
-          </span>
-        </label>
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={busy} className="w-fit">
           {busy ? "Saving…" : "Save preferences"}
-        </button>
+        </Button>
       </form>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Demo seed</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+      <Divider soft />
+
+      <div className="flex flex-col gap-3">
+        <Subheading level={2}>Demo seed</Subheading>
+        <Text>
           Creates a sample project, two outcomes, three tasks (one blocked), and
-          a reflection activity for reviewers. Safe to run more than once.
-        </p>
+          a reflection activity for reviewers. Skips if the demo project already
+          exists.
+        </Text>
         {seedMessage && (
-          <p className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          <SuccessBanner>
             {seedMessage}{" "}
-            <Link href="/projects" className="underline">
-              Open Projects
-            </Link>
-          </p>
+            <TextLink href="/projects">Open Projects</TextLink>
+          </SuccessBanner>
         )}
-        {seedError && (
-          <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-            {seedError}
-          </p>
-        )}
-        <button
+        {seedError && <ErrorBanner>{seedError}</ErrorBanner>}
+        <Button
           type="button"
+          outline
           disabled={seedBusy || !user}
           onClick={() => {
             if (!user) return;
@@ -207,7 +173,9 @@ export function SettingsView() {
             void seedDemoWorkspace(user.uid, user.uid)
               .then((result) => {
                 setSeedMessage(
-                  `Seeded demo project ${result.projectId.slice(0, 8)}… with ${result.taskIds.length} tasks.`,
+                  result.alreadyExisted
+                    ? `Demo project already exists (${result.projectId.slice(0, 8)}…). Open Projects to use it, or archive it first to re-seed.`
+                    : `Seeded demo project ${result.projectId.slice(0, 8)}… with ${result.taskIds.length} tasks.`,
                 );
               })
               .catch((err) => {
@@ -217,26 +185,24 @@ export function SettingsView() {
               })
               .finally(() => setSeedBusy(false));
           }}
-          className="mt-3 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+          className="w-fit"
         >
           {seedBusy ? "Seeding…" : "Seed demo project"}
-        </button>
+        </Button>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <p className="text-sm text-zinc-600">
+      <Divider soft />
+
+      <div className="flex flex-col gap-3">
+        <Text>
           Signed in as{" "}
-          <span className="font-medium text-zinc-900">
+          <span className="font-medium text-zinc-950 dark:text-white">
             {profile?.displayName ?? user?.email ?? "…"}
           </span>
-        </p>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="mt-3 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
-        >
+        </Text>
+        <Button type="button" outline onClick={() => void signOut()} className="w-fit">
           Sign out
-        </button>
+        </Button>
       </div>
     </div>
   );

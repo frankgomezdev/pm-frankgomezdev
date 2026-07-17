@@ -7,26 +7,46 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import { createOutcome } from "@/lib/outcomes/api";
-import { createProject } from "@/lib/projects/api";
+import { listProjects, createProject } from "@/lib/projects/api";
 import { createTask } from "@/lib/tasks/api";
+
+export const DEMO_PROJECT_TITLE = "Demo: Review week";
+const DEMO_TITLE_ALIASES = [DEMO_PROJECT_TITLE, "Demo — Review week"] as const;
 
 export type SeedDemoResult = {
   projectId: string;
   outcomeIds: string[];
   taskIds: string[];
+  alreadyExisted?: boolean;
 };
 
 /**
  * Creates a small demo project + outcomes + tasks for the signed-in user.
- * Safe to run more than once (creates additional demo data each time).
+ * Idempotent: if an active demo project with the canonical title already
+ * exists, returns that project instead of duplicating.
  */
 export async function seedDemoWorkspace(
   uid: string,
   assigneeId: string | null = uid,
 ): Promise<SeedDemoResult> {
+  const existing = (await listProjects()).find(
+    (p) =>
+      DEMO_TITLE_ALIASES.includes(
+        p.title as (typeof DEMO_TITLE_ALIASES)[number],
+      ) && p.status === "active",
+  );
+  if (existing) {
+    return {
+      projectId: existing.id,
+      outcomeIds: [],
+      taskIds: [],
+      alreadyExisted: true,
+    };
+  }
+
   const projectId = await createProject(
     {
-      title: "Demo — Review week",
+      title: DEMO_PROJECT_TITLE,
       description:
         "Seeded sample project for reviewers. Safe to archive when done.",
     },
@@ -48,7 +68,7 @@ export async function seedDemoWorkspace(
     projectId,
     {
       title: "Clear blockers for teammates",
-      description: "Coordination outcome — who unblocks whom.",
+      description: "Coordination outcome: who unblocks whom.",
       status: "open",
     },
     uid,
@@ -98,10 +118,10 @@ export async function seedDemoWorkspace(
     ),
   );
 
-  await updateDoc(doc(getFirestoreDb(), "tasks", taskIds[2]), {
+  await updateDoc(doc(getFirestoreDb(), "tasks", taskIds[2]!), {
     blockerNote: "Waiting on teammate confirmation of assignee list",
     nextAction: "Ping assignee in chat with the task link",
-    blockedByTaskIds: [taskIds[1]],
+    blockedByTaskIds: [taskIds[1]!],
     updatedAt: serverTimestamp(),
   });
 
@@ -112,7 +132,7 @@ export async function seedDemoWorkspace(
     taskId: null,
     outcomeId: outcomeShip,
     message:
-      "Reflection: Seeded demo data so reviewers can see Progress, Stalls, and outcomes quickly.",
+      "Reflection: Seeded demo data so reviewers can see Progress, Needs attention, and outcomes quickly.",
     createdAt: serverTimestamp(),
   });
 

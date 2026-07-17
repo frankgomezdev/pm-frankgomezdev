@@ -1,12 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { Button } from "@/components/catalyst/button";
+import { Checkbox, CheckboxField } from "@/components/catalyst/checkbox";
+import { Divider } from "@/components/catalyst/divider";
+import {
+  Field,
+  Fieldset,
+  Label,
+  Legend,
+} from "@/components/catalyst/fieldset";
+import { Heading } from "@/components/catalyst/heading";
+import { Input } from "@/components/catalyst/input";
+import { Link } from "@/components/catalyst/link";
+import { Select } from "@/components/catalyst/select";
+import { Code, Text, TextLink } from "@/components/catalyst/text";
+import { Textarea } from "@/components/catalyst/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OutcomePicker } from "@/components/outcomes/OutcomePicker";
 import { AssigneePicker } from "@/components/tasks/AssigneePicker";
 import { GoalQualityNudge } from "@/components/tasks/GoalQualityNudge";
+import { ErrorBanner, SuccessBanner } from "@/components/ui/Banner";
 import { listOutcomesByProject } from "@/lib/outcomes/api";
 import { listProjects } from "@/lib/projects/api";
 import { getTask, listTasks, updateTask } from "@/lib/tasks/api";
@@ -161,61 +176,52 @@ export function TaskDetailView() {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading task…</p>;
+    return <Text>Loading task…</Text>;
   }
 
   if (!task) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-zinc-700">Task not found.</p>
-        <Link href="/tasks" className="text-sm text-zinc-600 underline">
-          Back to tasks
-        </Link>
+        <Text>Task not found.</Text>
+        <Text>
+          <TextLink href="/tasks">Back to tasks</TextLink>
+        </Text>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <Link href="/tasks" className="text-sm text-zinc-500 hover:text-zinc-800">
+        <Link
+          href="/tasks"
+          className="text-sm/6 text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
+        >
           ← Tasks
         </Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Edit task</h1>
-        <p className="text-sm text-zinc-500">
+        <Heading>Edit task</Heading>
+        <Text className="mt-1">
           Status, assignee, title, and blocker changes bump{" "}
-          <code>lastMovedAt</code>. Link an outcome so work maps to a meaningful
+          <Code>lastMovedAt</Code>. Link an outcome so work maps to a meaningful
           goal.
-        </p>
+        </Text>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {error}
-        </p>
-      )}
-      {savedFlash && !error && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          Saved.
-        </p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {savedFlash && !error && <SuccessBanner>Saved.</SuccessBanner>}
 
-      <form
-        onSubmit={onSave}
-        className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
-      >
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Title</span>
-          <input
+      <form onSubmit={onSave} className="flex flex-col gap-4">
+        <Field>
+          <Label>Title</Label>
+          <Input
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           />
-        </label>
+        </Field>
         <GoalQualityNudge
           title={title}
           enabled={Boolean(profile?.preferences.nudgeGoalQuality)}
@@ -230,18 +236,17 @@ export function TaskDetailView() {
             })
           }
         />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Description</span>
-          <textarea
+        <Field>
+          <Label>Description</Label>
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Project</span>
-          <select
+        </Field>
+        <Field>
+          <Label>Project</Label>
+          <Select
             required
             value={projectId}
             onChange={(e) => {
@@ -249,7 +254,6 @@ export function TaskDetailView() {
               setOutcomeId(null);
               setBlockedByTaskIds([]);
             }}
-            className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
           >
             {projectOptions.map((p) => (
               <option key={p.id} value={p.id}>
@@ -257,103 +261,99 @@ export function TaskDetailView() {
                 {p.status === "archived" ? " (archived)" : ""}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Outcome</span>
+          </Select>
+        </Field>
+        <Field>
+          <Label>Outcome</Label>
           <OutcomePicker
             outcomes={outcomes}
             value={outcomeId}
             onChange={setOutcomeId}
             disabled={busy}
           />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Status</span>
-            <select
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <Label>Status</Label>
+            <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
             >
               {TASK_STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Assignee</span>
+            </Select>
+          </Field>
+          <Field>
+            <Label>Assignee</Label>
             <AssigneePicker
               users={users}
               value={assigneeId}
               onChange={setAssigneeId}
               disabled={busy}
             />
-          </label>
+          </Field>
         </div>
 
-        <fieldset className="mt-2 flex flex-col gap-3 border-t border-zinc-100 pt-4">
-          <legend className="text-sm font-semibold text-zinc-900">
-            Blockers & next action
-          </legend>
-          <p className="text-xs text-zinc-500">
+        <Divider soft />
+
+        <Fieldset>
+          <Legend>Blockers & next action</Legend>
+          <Text>
             Capture why work is stuck and the smallest step to unblock. Cleared
             blockers show on Progress.
-          </p>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Why stuck</span>
-            <textarea
-              value={blockerNote}
-              onChange={(e) => setBlockerNote(e.target.value)}
-              rows={2}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-              placeholder="Waiting on API access / design decision / …"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-700">Next action</span>
-            <input
-              value={nextAction}
-              onChange={(e) => setNextAction(e.target.value)}
-              className="rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-500"
-              placeholder="Smallest unblocking step"
-            />
-          </label>
-          <div className="flex flex-col gap-2 text-sm">
-            <span className="text-zinc-700">Blocked by (same project)</span>
-            {dependencyCandidates.length === 0 ? (
-              <p className="text-xs text-zinc-500">
-                No other open tasks in this project to depend on.
-              </p>
-            ) : (
-              <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-zinc-200 p-2">
-                {dependencyCandidates.map((candidate) => (
-                  <li key={candidate.id}>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={blockedByTaskIds.includes(candidate.id)}
-                        onChange={() => toggleBlockedBy(candidate.id)}
-                        disabled={busy}
-                      />
-                      <span>{candidate.title}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
+          </Text>
+          <div className="mt-6 space-y-6">
+            <Field>
+              <Label>Why stuck</Label>
+              <Textarea
+                value={blockerNote}
+                onChange={(e) => setBlockerNote(e.target.value)}
+                rows={2}
+                placeholder="Waiting on API access / design decision / …"
+              />
+            </Field>
+            <Field>
+              <Label>Next action</Label>
+              <Input
+                value={nextAction}
+                onChange={(e) => setNextAction(e.target.value)}
+                placeholder="Smallest unblocking step"
+              />
+            </Field>
+            <div className="flex flex-col gap-3">
+              <span className="text-base/6 font-medium text-zinc-950 sm:text-sm/6 dark:text-white">
+                Blocked by (same project)
+              </span>
+              {dependencyCandidates.length === 0 ? (
+                <Text className="text-xs/5">
+                  No other open tasks in this project to depend on.
+                </Text>
+              ) : (
+                <ul className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-lg border border-zinc-950/10 p-3 dark:border-white/10">
+                  {dependencyCandidates.map((candidate) => (
+                    <li key={candidate.id}>
+                      <CheckboxField>
+                        <Checkbox
+                          checked={blockedByTaskIds.includes(candidate.id)}
+                          onChange={() => toggleBlockedBy(candidate.id)}
+                          disabled={busy}
+                        />
+                        <Label>{candidate.title}</Label>
+                      </CheckboxField>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        </fieldset>
+        </Fieldset>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-1 w-fit rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={busy} className="w-fit">
           {busy ? "Saving…" : "Save changes"}
-        </button>
+        </Button>
       </form>
     </div>
   );
